@@ -21,6 +21,7 @@ jobs:
       - uses: azure/setup-helm@v4
       - name: Lint and render the chart
         run: |
+          helm repo add dagster https://dagster-io.github.io/helm
           helm dependency build charts/gate-cloud
           helm lint charts/gate-cloud --set monitorDeviceId=ci --set dagster.postgresql.postgresqlPassword=ci
           helm template ci charts/gate-cloud --set monitorDeviceId=ci --set dagster.postgresql.postgresqlPassword=ci > /dev/null

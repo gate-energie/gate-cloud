@@ -66,6 +66,7 @@ GATE_ASSET_MODEL_PATH=charts/gate-cloud/files/asset_model.yaml uv run dagster de
 ## Deploy
 
 ```bash
+helm repo add dagster https://dagster-io.github.io/helm
 helm dependency build charts/gate-cloud
 kubectl create namespace gate
 kubectl -n gate create secret generic gate-cloud-thingsflow \
