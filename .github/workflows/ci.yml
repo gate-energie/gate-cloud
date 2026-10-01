@@ -28,16 +28,40 @@ jobs:
 
   image:
     needs: test
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # The cluster stores runs, events and schedules in Postgres; unit tests
+    # use sqlite. Open the built image's instance on a real one before pushing.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dagster
+          POSTGRES_PASSWORD: dagster
+          POSTGRES_DB: dagster
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dagster"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
     steps:
       - uses: actions/checkout@v4
+      - name: Build
+        run: docker build -t gate-cloud:ci .
+      - name: Smoke test on Postgres
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/ci/postgres-smoke/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml:ro" \
+            -v "$PWD/ci/postgres-smoke/check.py:/tmp/check.py:ro" \
+            gate-cloud:ci python /tmp/check.py
       - uses: docker/login-action@v3
+        if: github.event_name == 'push'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/metadata-action@v5
+        if: github.event_name == 'push'
         id: meta
         with:
           images: ghcr.io/${{ github.repository }}
@@ -45,6 +69,7 @@ jobs:
             type=sha
             type=semver,pattern={{version}}
       - uses: docker/build-push-action@v6
+        if: github.event_name == 'push'
         with:
           context: .
           push: true

@@ -1,0 +1,10 @@
+# Instance config for the CI smoke test: the same Postgres-backed storages the
+# chart configures in the cluster, pointed at the CI service container.
+storage:
+  postgres:
+    postgres_db:
+      hostname: localhost
+      port: 5432
+      username: dagster
+      password: dagster
+      db_name: dagster
