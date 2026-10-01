@@ -1,0 +1,37 @@
+{{- if .Values.networkPolicy.enabled }}
+# GATE code and run pods may reach the cluster DNS, their own namespace
+# (Dagster's Postgres and gRPC) and flow-core -- nothing else. In particular,
+# not ThingsFlow's databases: the REST API is the whole contract.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gate-cloud-egress
+  labels:
+    app.kubernetes.io/name: gate-cloud
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  podSelector:
+    matchLabels:
+      gate-cloud/thingsflow-client: "true"
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector: {}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.thingsflow.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.thingsflow.podLabels | nindent 14 }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.thingsflow.port }} }
+{{- end }}

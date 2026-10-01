@@ -1,0 +1,31 @@
+{{- if not .Values.monitorDeviceId }}
+{{- fail "monitorDeviceId is required: the ThingsFlow id of the Refoss monitor" }}
+{{- end }}
+{{- if and .Values.dagster.postgresql.enabled (not .Values.dagster.postgresql.postgresqlPassword) }}
+{{- fail "dagster.postgresql.postgresqlPassword is required; pass it with --set, not in a values file" }}
+{{- end }}
+# Fixed names on purpose: the Dagster subchart references them literally
+# (values.yaml, dagster-user-deployments), and subchart values cannot be
+# templated. One GATE release per namespace.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gate-cloud-env
+  labels:
+    app.kubernetes.io/name: gate-cloud
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  THINGSFLOW_URL: {{ .Values.thingsflow.url | quote }}
+  GATE_MONITOR_DEVICE_ID: {{ .Values.monitorDeviceId | quote }}
+  GATE_ASSET_MODEL_PATH: /etc/gate-cloud/asset_model.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gate-cloud-asset-model
+  labels:
+    app.kubernetes.io/name: gate-cloud
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  asset_model.yaml: |
+{{- default (.Files.Get "files/asset_model.yaml") .Values.assetModel | nindent 4 }}

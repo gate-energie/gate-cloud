@@ -1,0 +1,83 @@
+# Asset model for the GATE site. The chart ships it as a ConfigMap; the
+# Dagster asset `thingsflow_asset_model` makes ThingsFlow match it.
+#
+# The edge publishes what each channel MEASURES as the monitor device's
+# `circuit_map` attribute (gate-energie/edge). This file says what each circuit
+# IS for the people operating the building -- type, label, tariff, budget.
+# They are kept apart because the circuit map is a wiring document that changes
+# with clamps and breakers, while this one changes with operations.
+#
+# The sync joins them by circuit name and refuses to run when they disagree:
+# every branch circuit on the monitor needs an entry here, and every entry here
+# needs a circuit on the monitor. A circuit that silently has no asset is a cost
+# nobody sees.
+#
+# Hierarchy created in ThingsFlow (all relations are "Contains", the type the
+# ThingsBoard hierarchy widgets navigate):
+#
+#   Building -- Panel -- one asset per branch circuit
+#                  \--- the monitor device (it lives in the panel)
+#
+# Telemetry is NOT copied onto assets. Each circuit asset carries
+# `circuit_key`, the prefix of its keys on the monitor
+# (`<circuit_key>_active_power`, ...), and `monitor_device_id`. There is one
+# history, not two.
+
+building:
+  name: "GATE Building"
+  label: "GATE"
+  attributes:
+    timezone: "America/Toronto"
+    currency: "CAD"
+    # Hydro-Quebec Rate D, carried over from the GATE backend defaults
+    # (gate/backend/app/services/settings_service.py). Tier 1 applies to the
+    # first tariff_tier1_limit_kwh_day kWh per day of the billing period.
+    tariff_plan: "hydro-quebec-rate-d"
+    tariff_tier1_rate: 0.0676
+    tariff_tier2_rate: 0.1048
+    tariff_tier1_limit_kwh_day: 40.0
+    tariff_fixed_charge_month: 12.54
+    tariff_tax_rate: 0.14975
+    monthly_budget: 150.0
+    daily_budget_kwh: 30.0
+    peak_power_alert_w: 15000
+
+panel:
+  name: "GATE Main Panel"
+  label: "Main panel"
+
+# Asset Profiles, one per kind of equipment. The profile name doubles as the
+# asset `type`, as in ThingsBoard.
+asset_types:
+  Building: "A monitored building; holds the tariff and the budget."
+  Electrical Panel: "A load centre; contains the energy monitor and its circuits."
+  HVAC: "Heating, cooling and ventilation loads."
+  Water Heating: "Domestic hot water."
+  Appliance: "Fixed kitchen and household appliances."
+  Lighting: "Lighting circuits."
+  Outlets: "General-purpose receptacle circuits."
+
+# One entry per branch circuit in the monitor's circuit_map, keyed by the
+# circuit name. `type` must be one of asset_types. Optional fields:
+#   label            display name in the UI
+#   rated_power_w    nameplate power, when known
+#   breaker_amps     breaker rating; F4 alarms compute load % against it
+# Unknown ratings are left out rather than guessed: a made-up rating produces
+# believable load percentages that are wrong.
+circuits:
+  heating:         { type: HVAC,          label: "Heating" }
+  heating_storage: { type: HVAC,          label: "Heat storage" }
+  air_conditioner: { type: HVAC,          label: "Air conditioner" }
+  ventilation:     { type: HVAC,          label: "Ventilation" }
+  air_exchanger:   { type: HVAC,          label: "Air exchanger" }
+  water_heater:    { type: Water Heating, label: "Water heater" }
+  stove:           { type: Appliance,     label: "Stove" }
+  dishwasher:      { type: Appliance,     label: "Dishwasher" }
+  range_hood:      { type: Appliance,     label: "Range hood" }
+  refrigerator:    { type: Appliance,     label: "Refrigerator" }
+  lights:          { type: Lighting,      label: "Lights" }
+  outlet:          { type: Outlets,       label: "Outlets (breaker 6)" }
+  plug_27:         { type: Outlets,       label: "Outlets (breaker 27)" }
+  plug_29:         { type: Outlets,       label: "Outlets (breaker 29)" }
+  plug_31_33:      { type: Outlets,       label: "Outlets 240 V (breakers 31-33)" }
+  plug_36_38:      { type: Outlets,       label: "Outlets 240 V (breakers 36-38)" }

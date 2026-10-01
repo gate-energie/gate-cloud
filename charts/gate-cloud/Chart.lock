@@ -1,0 +1,6 @@
+dependencies:
+- name: dagster
+  repository: https://dagster-io.github.io/helm
+  version: 1.13.25
+digest: sha256:4c8d39de76545bb9df5b0ec978e5187751cf62259cef96cc8a2d955da6687224
+generated: "2026-10-01T20:42:19.788439267Z"

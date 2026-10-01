@@ -1,0 +1,88 @@
+# ── GATE ─────────────────────────────────────────────────────────────────────
+
+thingsflow:
+  # flow-core, reached in-cluster. GATE talks to ThingsFlow only through this.
+  url: http://thingsflow-flow-core.thingsflow.svc:8080
+  # Namespace and pod labels of flow-core, for the egress NetworkPolicy.
+  namespace: thingsflow
+  podLabels:
+    app: flow-core
+  port: 8080
+  # Secret with THINGSFLOW_USERNAME and THINGSFLOW_PASSWORD for the dedicated
+  # GATE tenant-admin account. Created outside the chart; never in values.
+  # The name is also listed under dagster-user-deployments envSecrets below.
+  existingSecret: gate-cloud-thingsflow
+
+# ThingsFlow id of the Refoss monitor whose circuit_map drives the model.
+monitorDeviceId: ""
+
+# The site's asset model. Defaults to files/asset_model.yaml in this chart;
+# override with --set-file assetModel=path/to/model.yaml for another site.
+assetModel: ""
+
+networkPolicy:
+  enabled: true
+
+# ── Dagster (official chart) ─────────────────────────────────────────────────
+# Subchart values cannot be templated, so everything release-specific reaches
+# the user code through the fixed-name ConfigMaps this chart renders
+# (gate-cloud-env, gate-cloud-asset-model).
+
+dagster:
+  dagsterWebserver:
+    # UI stays internal; reach it with kubectl port-forward until there is a
+    # reason (and an authenticating proxy) to expose it.
+    service:
+      type: ClusterIP
+
+  dagster-user-deployments:
+    enabled: true
+    enableSubchart: true
+    imagePullSecrets: []
+    deployments:
+      - name: gate-cloud
+        image:
+          repository: ghcr.io/gate-energie/gate-cloud
+          tag: "0.1.0"
+          pullPolicy: IfNotPresent
+        dagsterApiGrpcArgs: ["--module-name", "gate_cloud.definitions"]
+        port: 3030
+        # Run pods get the same env, secrets and mounts as the code server.
+        includeConfigInLaunchedRuns:
+          enabled: true
+        envConfigMaps:
+          - name: gate-cloud-env
+        envSecrets:
+          - name: gate-cloud-thingsflow
+        volumes:
+          - name: asset-model
+            configMap:
+              name: gate-cloud-asset-model
+        volumeMounts:
+          - name: asset-model
+            mountPath: /etc/gate-cloud
+            readOnly: true
+        labels:
+          gate-cloud/thingsflow-client: "true"
+        resources:
+          requests: { cpu: 50m, memory: 256Mi }
+          limits: { memory: 512Mi }
+
+  runLauncher:
+    type: K8sRunLauncher
+    config:
+      k8sRunLauncher:
+        labels:
+          gate-cloud/thingsflow-client: "true"
+
+  # Run and event history. Persistent: losing it loses sensor cursors and
+  # schedule ticks, not ThingsFlow data, but a PVC costs nothing here.
+  # Set postgresqlPassword at install time (--set), never in a values file.
+  postgresql:
+    enabled: true
+    postgresqlUsername: dagster
+    postgresqlDatabase: dagster
+    postgresqlPassword: ""
+    persistence:
+      enabled: true
+      size: 2Gi

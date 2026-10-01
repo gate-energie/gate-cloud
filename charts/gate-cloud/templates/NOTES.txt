@@ -1,0 +1,12 @@
+GATE cloud is installed in namespace {{ .Release.Namespace }}.
+
+Dagster UI (internal only):
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-dagster-webserver 3000:80
+
+The sensor `asset_model_inputs_changed` syncs the asset model into ThingsFlow
+({{ .Values.thingsflow.url }}) within a few minutes. It must be turned on once
+in the UI (Automation -> Sensors) or with:
+  dagster sensor start asset_model_inputs_changed
+
+The Secret {{ .Values.thingsflow.existingSecret }} must hold THINGSFLOW_USERNAME
+and THINGSFLOW_PASSWORD for the GATE tenant-admin account.
