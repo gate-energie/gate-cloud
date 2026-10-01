@@ -7,6 +7,8 @@ The ThingsFlow asset model is one Dagster asset. It is materialised:
     edge), and requests a run keyed by that hash;
   - once a day regardless, to restore anything edited by hand in the UI.
 
+The sensor is on from deployment; nobody has to start it in the UI.
+
 Runs are idempotent, so a duplicate trigger costs a few reads.
 """
 
@@ -88,7 +90,9 @@ daily_asset_model_sync = dg.ScheduleDefinition(
 )
 
 
-@dg.sensor(job=sync_asset_model_job, minimum_interval_seconds=120)
+@dg.sensor(
+    job=sync_asset_model_job, minimum_interval_seconds=120, default_status=dg.DefaultSensorStatus.RUNNING
+)
 def asset_model_inputs_changed(
     context: dg.SensorEvaluationContext, thingsflow: ThingsFlowResource, asset_model_file: AssetModelFile
 ):

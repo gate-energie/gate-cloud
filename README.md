@@ -27,7 +27,7 @@ there.
 | Dagster object | What it does | When |
 |---|---|---|
 | asset `thingsflow_asset_model` | Creates/updates asset profiles, the Building, the Panel and one asset per circuit, with "Contains" relations down to the monitor device | on change, and daily |
-| sensor `asset_model_inputs_changed` | Hashes the asset model file and the monitor's `circuit_map`; requests a run when either changes | every 2 min |
+| sensor `asset_model_inputs_changed` | Hashes the asset model file and the monitor's `circuit_map`; requests a run when either changes. On from deployment | every 2 min |
 | schedule `daily_asset_model_sync` | Re-applies the model, restoring anything edited by hand | 06:00 America/Toronto |
 
 The sync looks up before it writes (a second run writes nothing) and never

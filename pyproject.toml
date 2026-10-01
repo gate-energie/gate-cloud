@@ -1,6 +1,6 @@
 [project]
 name = "gate-cloud"
-version = "0.1.0"
+version = "0.1.1"
 description = "GATE energy asset operations on top of ThingsFlow, orchestrated with Dagster."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -9,6 +9,9 @@ dependencies = [
     "dagster==1.13.25",
     "dagster-k8s==0.29.25",
     "dagster-postgres==0.29.25",
+    # SQLAlchemy 2.1 maps postgresql:// to psycopg (v3); dagster-postgres ships
+    # and uses psycopg2. Stay on 2.0 rather than mixing two drivers.
+    "sqlalchemy>=2.0,<2.1",
     "tb-rest-client==4.3",
     "pyyaml>=6.0",
 ]
