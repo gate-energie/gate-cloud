@@ -177,3 +177,19 @@ def test_daily_without_main_total_leaves_fraction_and_cost_unknown(tmp_path):
     values = written("asset-heating")
     assert values["energy_kwh"] == 24.0
     assert "energy_fraction_pct" not in values and "cost_cad" not in values  # None is not written
+
+
+def test_circuit_without_an_asset_is_skipped_and_reported(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed()
+    del SHARED.entities["heating"]  # in the plan, not (yet) in ThingsFlow
+    daily = dg.materialize([d.circuit_daily_metrics], partition_key="2026-09-30", resources=res)
+    assert daily.success
+    meta = daily.asset_materializations_for_node("circuit_daily_metrics")[0].metadata
+    assert meta["missing_assets"].value == ["heating"]
+    summary = dg.materialize([d.asset_twin_summary], resources=res, run_config=SUMMARY_CONFIG)
+    assert summary.success
+    meta = summary.asset_materializations_for_node("asset_twin_summary")[0].metadata
+    assert meta["missing_assets"].value == ["heating"]
+    assert "twin_energy_kwh" not in SHARED.attrs["asset-heating"]

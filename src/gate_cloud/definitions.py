@@ -224,14 +224,21 @@ def circuit_daily_metrics(
             session.save_timeseries(entity_ref("ASSET", building_id), {"ts": window.start_ms, "values": values})
     for name in result.no_data:
         context.log.warning(f"circuit {name!r} has no data on {context.partition_key}")
+    _warn_missing(context, result.missing_assets)
     return dg.MaterializeResult(metadata={
         "building_energy_kwh": building.get("energy_kwh"),
         "building_cost_cad": building.get("cost_cad"),
         "temp_mean_c": building.get("temp_mean_c"),
         "no_data": result.no_data,
+        "missing_assets": result.missing_assets,
         "written_to_assets": thingsflow.asset_history,
         "circuits": dg.MetadataValue.md(_table(result.circuits)),
     })
+
+
+def _warn_missing(context: dg.AssetExecutionContext, names: list[str]) -> None:
+    for name in names:
+        context.log.warning(f"circuit {name!r} has no ThingsFlow asset yet; skipped until thingsflow_asset_model runs")
 
 
 def _table(metrics) -> str:
@@ -272,9 +279,11 @@ def asset_twin_summary(
             attrs = summary_attributes(window, m, power, temperature, humidity, c.rated_power_w, QUARTER_MS)
             attrs["twin_updated_at"] = now_ms
             session.save_attributes(entity_ref("ASSET", c.asset_id), "SERVER_SCOPE", attrs)
+    _warn_missing(context, result.missing_assets)
     return dg.MaterializeResult(metadata={
         "window_start": window.start_ms, "window_end": window.end_ms,
         "circuits": len(result.circuits), "no_data": result.no_data,
+        "missing_assets": result.missing_assets,
     })
 
 

@@ -28,18 +28,27 @@ class Circuit:
 @dataclass
 class DailyResult:
     found: list[Circuit] = field(default_factory=list)
+    missing_assets: list[str] = field(default_factory=list)
     circuits: dict[str, CircuitMetrics] = field(default_factory=dict)
     building: dict[str, Any] = field(default_factory=dict)
     no_data: list[str] = field(default_factory=list)
 
 
-def circuits(session, plan: Plan) -> list[Circuit]:
+def circuits(session, plan: Plan) -> tuple[list[Circuit], list[str]]:
+    """The plan's circuits that have a ThingsFlow asset, and the names of those
+    that do not yet (the asset-model sync has not run since they appeared)."""
     ids = {name: asset.id.id for name, asset in session.assets().items()}
-    return [
-        Circuit(spec.name, spec.attributes["circuit_key"], ids[spec.name], spec.attributes.get("rated_power_w"))
-        for spec in plan.assets
-        if spec.parent is not None and spec.profile not in ("Building", "Electrical Panel")
-    ]
+    found: list[Circuit] = []
+    missing: list[str] = []
+    for spec in plan.assets:
+        if spec.parent is None or spec.profile in ("Building", "Electrical Panel"):
+            continue
+        if spec.name not in ids:
+            missing.append(spec.name)
+            continue
+        found.append(Circuit(spec.name, spec.attributes["circuit_key"], ids[spec.name],
+                             spec.attributes.get("rated_power_w")))
+    return found, missing
 
 
 def read_power(session, device, key: str, window: Window, bucket_ms: int) -> Series:
@@ -75,7 +84,8 @@ def read_weather(session, weather_device, window: Window) -> tuple[Series, Serie
 
 def measure(session, monitor, plan: Plan, rate: RateD, window: Window, days: int) -> DailyResult:
     """Metrics of every circuit and the building over `window`, on 1-minute buckets."""
-    result = DailyResult(found=circuits(session, plan))
+    found, missing = circuits(session, plan)
+    result = DailyResult(found=found, missing_assets=missing)
     for c in result.found:
         m = circuit_metrics(window, MINUTE_MS, read_input(session, monitor, c.key, window))
         if m is None:
