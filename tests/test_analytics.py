@@ -6,6 +6,7 @@ import dagster as dg
 
 from gate_cloud import definitions as d
 from gate_cloud.analytics import MINUTE_MS, QUARTER_MS
+from gate_cloud.tariff import RateD
 from gate_cloud.twin import local_day
 from tests.fakes import FakeThingsFlow, circuit_map
 from tests.test_definitions import SHARED, FakeThingsFlowResource, weather_resources
@@ -207,3 +208,32 @@ def test_building_aggregate_key_comes_from_the_circuit_map(tmp_path):
     result = dg.materialize([d.circuit_daily_metrics], partition_key="2026-09-30", resources=res)
     meta = result.asset_materializations_for_node("circuit_daily_metrics")[0].metadata
     assert meta["building_energy_kwh"].value == 48.0
+
+
+def test_summary_writes_month_budget_on_the_building(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed()  # main_total counter 1000 -> 1048 on 2026-09-30
+    result = dg.materialize([d.asset_twin_summary], resources=res,
+                            run_config={"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-01"}}}})
+    assert result.success
+    b = SHARED.attrs["asset-B"]
+    assert None not in b.values()
+    # end_date 2026-10-01 is the 1st: the month window is empty
+    assert set(b["month_unknown"].split(",")) == {"month_energy_kwh", "month_cost_cad",
+                                                  "month_budget_used_pct", "month_projected_cost_cad"}
+
+
+def test_summary_month_budget_mid_month(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    day = local_day(dt.date(2026, 10, 1))
+    SHARED.series[("dev-1", "main_total_energy_in_kwh")] = [(day.start_ms - MIN, 1048.0), (day.end_ms - MIN, 1060.0)]
+    dg.materialize([d.asset_twin_summary], resources=res,
+                   run_config={"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-02"}}}})
+    b = SHARED.attrs["asset-B"]
+    cost = RateD().cost(12.0, days=1, apply_fixed_charge=True)["total"]
+    assert b["month_energy_kwh"] == 12.0 and b["month_cost_cad"] == cost
+    assert b["month_projected_cost_cad"] == round(cost * 31, 2)
+    # the test model has no monthly_budget, so the percentage is unknown
+    assert "month_budget_used_pct" in b["month_unknown"].split(",")

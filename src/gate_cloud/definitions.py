@@ -12,6 +12,7 @@ The sensor is on from deployment; nobody has to start it in the UI.
 Runs are idempotent, so a duplicate trigger costs a few reads.
 """
 
+import calendar
 import datetime as dt
 import hashlib
 import json
@@ -22,11 +23,11 @@ from typing import Any
 import dagster as dg
 import yaml
 
-from gate_cloud.analytics import QUARTER_MS, measure, read_power, read_weather
+from gate_cloud.analytics import MINUTE_MS, QUARTER_MS, main_key, measure, read_input, read_power, read_weather
 from gate_cloud.asset_model import apply_plan, build_plan
 from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
-from gate_cloud.twin import Window, local_day, summary_attributes, weather_day
+from gate_cloud.twin import Window, circuit_metrics, local_day, month_budget, month_window, summary_attributes, weather_day
 from gate_cloud.weather import ARCHIVE_URL, FORECAST_URL, OpenMeteo
 
 TIMEZONE = "America/Toronto"
@@ -244,16 +245,16 @@ def _warn_missing(context: dg.AssetExecutionContext, names: list[str]) -> None:
         context.log.warning(f"circuit {name!r} has no ThingsFlow asset yet; skipped until thingsflow_asset_model runs")
 
 
-def _known(attrs: dict[str, Any]) -> dict[str, Any]:
-    """Attributes to store: the known values, plus `twin_unknown` naming the rest.
+def _known(attrs: dict[str, Any], unknown_key: str = "twin_unknown") -> dict[str, Any]:
+    """Attributes to store: the known values, plus `unknown_key` naming the rest.
 
     ThingsFlow stores a JSON null as the string "null", and it cannot delete
     attributes (DELETE .../attributes returns 404), so an unknown value is not
     written. A value left from an earlier window may then remain on the asset;
-    `twin_unknown` says it does not describe the current one.
+    `unknown_key` says it does not describe the current one.
     """
     known = {k: v for k, v in attrs.items() if v is not None}
-    known["twin_unknown"] = ",".join(sorted(k for k, v in attrs.items() if v is None))
+    known[unknown_key] = ",".join(sorted(k for k, v in attrs.items() if v is None))
     return known
 
 
@@ -297,11 +298,25 @@ def asset_twin_summary(
             attrs = summary_attributes(window, m, power, temperature, humidity, c.rated_power_w, QUARTER_MS)
             attrs["twin_updated_at"] = now_ms
             session.save_attributes(entity_ref("ASSET", c.asset_id), "SERVER_SCOPE", _known(attrs))
+        month = month_window(end_day)
+        energy = None
+        if month is not None:
+            m = circuit_metrics(month, MINUTE_MS, read_input(session, monitor, main_key(plan), month))
+            energy = m.energy_kwh if m is not None else None
+        elapsed = 0 if month is None else (end_day - end_day.replace(day=1)).days
+        days_in_month = calendar.monthrange(end_day.year, end_day.month)[1]
+        building_attrs = (model.get("building") or {}).get("attributes") or {}
+        budget = month_budget(energy, elapsed, days_in_month, rate, building_attrs.get("monthly_budget"))
+        budget["month_updated_at"] = now_ms
+        building = session.assets().get(model["building"]["name"])
+        if building is not None:
+            session.save_attributes(entity_ref("ASSET", building.id.id), "SERVER_SCOPE", _known(budget, "month_unknown"))
     _warn_missing(context, result.missing_assets)
     return dg.MaterializeResult(metadata={
         "window_start": window.start_ms, "window_end": window.end_ms,
         "circuits": len(result.circuits), "no_data": result.no_data,
         "missing_assets": result.missing_assets,
+        "month_cost_cad": budget["month_cost_cad"], "month_budget_used_pct": budget["month_budget_used_pct"],
     })
 
 
