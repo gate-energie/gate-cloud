@@ -14,6 +14,7 @@ dependencies = [
     "sqlalchemy>=2.0,<2.1",
     "tb-rest-client==4.3",
     "pyyaml>=6.0",
+    "requests>=2.31",
 ]
 
 [dependency-groups]

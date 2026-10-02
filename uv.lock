@@ -768,6 +768,7 @@ dependencies = [
     { name = "dagster-k8s" },
     { name = "dagster-postgres" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "sqlalchemy" },
     { name = "tb-rest-client" },
 ]
@@ -784,6 +785,7 @@ requires-dist = [
     { name = "dagster-k8s", specifier = "==0.29.25" },
     { name = "dagster-postgres", specifier = "==0.29.25" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "requests", specifier = ">=2.31" },
     { name = "sqlalchemy", specifier = ">=2.0,<2.1" },
     { name = "tb-rest-client", specifier = "==4.3" },
 ]
