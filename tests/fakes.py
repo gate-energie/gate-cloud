@@ -36,6 +36,8 @@ class FakeThingsFlow:
         self.devices_by_name: dict[str, SimpleNamespace] = {}
         self.ingested: list[tuple[str, str, list]] = []
         self.asset_points: list[tuple[str, dict]] = []
+        self.dashboards: dict[str, tuple[str, dict]] = {}
+        self.dashboard_writes = 0
 
     # context-manager surface of gate_cloud.thingsflow.ThingsFlow
     def __enter__(self) -> "FakeThingsFlow":
@@ -115,3 +117,13 @@ class FakeThingsFlow:
 
     def save_timeseries(self, entity, point):
         self.asset_points.append((entity.id, point))
+
+    def dashboard(self, title):
+        found = self.dashboards.get(title)
+        return (found[0], copy.deepcopy(found[1])) if found else None
+
+    def save_dashboard(self, title, configuration, dashboard_id=None):
+        self.dashboard_writes += 1
+        dashboard_id = dashboard_id or f"dash-{self.dashboard_writes}"
+        self.dashboards[title] = (dashboard_id, copy.deepcopy(configuration))
+        return dashboard_id

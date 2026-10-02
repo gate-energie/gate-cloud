@@ -93,3 +93,37 @@ def test_ensure_device_reuses_an_existing_device():
     client = StubClient(devices=[existing])
     assert wrapper(client).ensure_device("GATE Weather", "weather", "Weather") == "device-old"
     assert client.saved == []
+
+
+class DashboardStub:
+    def __init__(self, existing=()):
+        self.saved = []
+        self._existing = {d["title"]: d for d in existing}
+
+    def get_tenant_dashboards(self, page_size, page, text_search=None):
+        rows = [SimpleNamespace(title=t, id=SimpleNamespace(id=d["id"])) for t, d in self._existing.items()
+                if text_search.lower() in t.lower()]
+        return SimpleNamespace(data=rows, has_next=False)
+
+    def get_dashboard_by_id(self, dashboard_id):
+        d = next(d for d in self._existing.values() if d["id"] == dashboard_id.id)
+        return SimpleNamespace(configuration=d["configuration"])
+
+    def save_dashboard(self, body=None):
+        self.saved.append(body)
+        return SimpleNamespace(id=SimpleNamespace(id=body.id.id if body.id else "dash-new"))
+
+
+def test_dashboard_lookup_is_exact_by_title():
+    stub = DashboardStub([{"title": "GATE — Operación (copy)", "id": "d2", "configuration": {}},
+                          {"title": "GATE — Operación", "id": "d1", "configuration": {"a": 1}}])
+    assert wrapper(stub).dashboard("GATE — Operación") == ("d1", {"a": 1})
+    assert wrapper(DashboardStub()).dashboard("GATE — Operación") is None
+
+
+def test_save_dashboard_builds_the_real_model():
+    stub = DashboardStub()
+    assert wrapper(stub).save_dashboard("T", {"a": 1}) == "dash-new"
+    assert stub.saved[0].title == "T" and stub.saved[0].configuration == {"a": 1} and stub.saved[0].id is None
+    wrapper(stub).save_dashboard("T", {"a": 2}, "d1")
+    assert stub.saved[1].id.id == "d1"

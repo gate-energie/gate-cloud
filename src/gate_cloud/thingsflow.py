@@ -22,6 +22,8 @@ from tb_rest_client.models.models_ce import (
     AssetId,
     AssetProfile,
     AssetProfileId,
+    Dashboard,
+    DashboardId,
     Device,
     DeviceProfileId,
     EntityId,
@@ -110,6 +112,21 @@ class ThingsFlow:
         so `get_tenant_asset` cannot be used for lookups; page and index instead.
         """
         return {a.name: a for a in self._pages(self._client.get_tenant_assets)}
+
+    def dashboard(self, title: str) -> tuple[str, dict[str, Any]] | None:
+        """(id, configuration) of the dashboard titled exactly `title`, or None.
+
+        textSearch is a case-insensitive substring match, so the exact-title
+        filter is applied here.
+        """
+        rows = self._pages(lambda page_size, page: self._client.get_tenant_dashboards(
+            page_size=page_size, page=page, text_search=title))
+        for row in rows:
+            if row.title == title:
+                dashboard_id = row.id.id
+                stored = _checked(self._client.get_dashboard_by_id(DashboardId(dashboard_id, "DASHBOARD")))
+                return dashboard_id, stored.configuration
+        return None
 
     def attributes(self, entity: EntityId, scope: str, keys: list[str]) -> dict[str, Any]:
         rows = _checked(self._client.get_attributes_by_scope(entity, scope, keys=",".join(keys)))
@@ -201,3 +218,9 @@ class ThingsFlow:
         """One timestamped sample on an entity. For assets this reaches history
         only once ThingsFlow ships asset-telemetry-history (thingsflow-hwz)."""
         _checked(self._client.save_entity_telemetry(entity, "ANY", point))
+
+    def save_dashboard(self, title: str, configuration: dict[str, Any], dashboard_id: str | None = None) -> str:
+        """Create a dashboard, or replace the one with `dashboard_id`; returns its id."""
+        body = Dashboard(title=title, configuration=configuration,
+                         id=DashboardId(dashboard_id, "DASHBOARD") if dashboard_id else None)
+        return _checked(self._client.save_dashboard(body)).id.id
