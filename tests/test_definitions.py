@@ -139,3 +139,10 @@ def test_site_requires_latitude_and_longitude():
     assert d.site(yaml.safe_load(MODEL_WITH_SITE)) == (46.35, -72.58)
     with pytest.raises(dg.Failure, match="needs latitude and longitude"):
         d.site(yaml.safe_load(MODEL_YAML))
+
+
+def test_every_schedule_starts_running():
+    # Nobody turns schedules on by hand after a deploy (0.1.x shipped the
+    # 06:00 sync STOPPED and it never ran in prod).
+    for schedule in d.defs.schedules:
+        assert schedule.default_status == dg.DefaultScheduleStatus.RUNNING, schedule.name

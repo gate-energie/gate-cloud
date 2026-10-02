@@ -1,5 +1,7 @@
 """ThingsFlow helpers that do not need a server."""
-from gate_cloud.thingsflow import MAX_POINTS, chunks, parse_series
+from types import SimpleNamespace
+
+from gate_cloud.thingsflow import MAX_POINTS, ThingsFlow, chunks, parse_series
 from tests.fakes import FakeThingsFlow, ref
 
 MIN = 60_000
@@ -50,3 +52,44 @@ def test_fake_max_buckets_and_single_point_without_interval():
     fake, entity = _fake_with_minutes()
     assert fake.timeseries(entity, ["p"], 0, 4 * MIN, interval_ms=2 * MIN, agg="MAX") == {"p": [(0, 2.0), (2 * MIN, 4.0)]}
     assert fake.timeseries(entity, ["p"], 0, 4 * MIN, agg="MAX") == {"p": [(0, 4.0)]}
+
+
+class StubClient:
+    """Stands in for RestClientCE so the wrapper builds real tb-rest-client models."""
+
+    def __init__(self, devices=()):
+        self.saved = []
+        self._devices = list(devices)
+
+    def get_tenant_devices(self, page_size, page):
+        return SimpleNamespace(data=self._devices, has_next=False)
+
+    def get_default_device_profile_info(self):
+        return SimpleNamespace(id=SimpleNamespace(id="profile-default"))
+
+    def save_device(self, body=None, access_token=None):
+        self.saved.append(body)
+        return SimpleNamespace(id=SimpleNamespace(id="device-new"))
+
+
+def wrapper(client):
+    session = ThingsFlow.__new__(ThingsFlow)
+    session._client = client
+    return session
+
+
+def test_ensure_device_creates_with_the_default_device_profile():
+    # tb-rest-client's Device validates device_profile_id in its constructor;
+    # the fake never builds the model, so only this test can catch that.
+    client = StubClient()
+    assert wrapper(client).ensure_device("GATE Weather", "weather", "Weather") == "device-new"
+    device = client.saved[0]
+    assert (device.name, device.type, device.label) == ("GATE Weather", "weather", "Weather")
+    assert device.device_profile_id.id == "profile-default"
+
+
+def test_ensure_device_reuses_an_existing_device():
+    existing = SimpleNamespace(name="GATE Weather", id=SimpleNamespace(id="device-old"))
+    client = StubClient(devices=[existing])
+    assert wrapper(client).ensure_device("GATE Weather", "weather", "Weather") == "device-old"
+    assert client.saved == []

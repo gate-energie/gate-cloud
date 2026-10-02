@@ -23,6 +23,7 @@ from tb_rest_client.models.models_ce import (
     AssetProfile,
     AssetProfileId,
     Device,
+    DeviceProfileId,
     EntityId,
     EntityRelation,
 )
@@ -173,7 +174,12 @@ class ThingsFlow:
         existing = self.devices().get(name)
         if existing is not None:
             return existing.id.id
-        return _checked(self._client.save_device(Device(name=name, type=device_type, label=label))).id.id
+        # tb-rest-client's Device refuses a missing device_profile_id; the
+        # tenant's default profile is enough for a device fed over HTTP ingest.
+        profile = _checked(self._client.get_default_device_profile_info())
+        device = Device(name=name, type=device_type, label=label,
+                        device_profile_id=DeviceProfileId(profile.id.id, "DEVICE_PROFILE"))
+        return _checked(self._client.save_device(device)).id.id
 
     def device_jwt(self, device_id: str) -> str:
         """A short-lived device JWT for HTTP ingest. Not in tb-rest-client."""

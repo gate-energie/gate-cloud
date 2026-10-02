@@ -102,6 +102,7 @@ daily_asset_model_sync = dg.ScheduleDefinition(
     job=sync_asset_model_job,
     cron_schedule="0 6 * * *",
     execution_timezone="America/Toronto",
+    default_status=dg.DefaultScheduleStatus.RUNNING,
 )
 
 
