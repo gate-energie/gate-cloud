@@ -116,6 +116,23 @@ def test_weather_fails_clearly_without_building_in_thingsflow(tmp_path):
     context = dg.build_asset_context(partition_key="2026-09-30-10:00")
     with pytest.raises(dg.Failure, match="materialise thingsflow_asset_model first"):
         d.weather_observations(context, res["thingsflow"], res["asset_model_file"], res["weather"])
+    assert d.WEATHER_DEVICE not in SHARED.devices_by_name  # nothing created before the check
+
+
+def test_asset_model_sync_does_not_need_the_ingest_url(tmp_path):
+    res = resources(tmp_path, circuit_map("heating"))
+    res["thingsflow"] = FakeThingsFlowResource(url="x", username="u", password="p", monitor_device_id="dev-1")
+    assert dg.materialize([d.thingsflow_asset_model], resources=res).success
+
+
+def test_weather_fails_clearly_without_ingest_url(tmp_path):
+    res = weather_resources(tmp_path)
+    res["thingsflow"] = FakeThingsFlowResource(url="x", username="u", password="p", monitor_device_id="dev-1")
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    context = dg.build_asset_context(partition_key="2026-09-30-10:00")
+    with pytest.raises(dg.Failure, match="THINGSFLOW_INGEST_URL is not set"):
+        d.weather_observations(context, res["thingsflow"], res["asset_model_file"], res["weather"])
+    assert SHARED.ingested == []
 
 
 def test_site_requires_latitude_and_longitude():

@@ -43,7 +43,7 @@ class ThingsFlowResource(dg.ConfigurableResource):
     username: str
     password: str
     monitor_device_id: str
-    ingest_url: str
+    ingest_url: str = ""  # only weather_observations needs it
     asset_history: bool = False
 
     def session(self) -> ThingsFlow:
@@ -152,19 +152,21 @@ def weather_observations(
     asset_model_file: AssetModelFile,
     weather: WeatherResource,
 ) -> dg.MaterializeResult:
+    if not thingsflow.ingest_url:
+        raise dg.Failure("THINGSFLOW_INGEST_URL is not set")
     model = asset_model_file.load()
     latitude, longitude = site(model)
     window = context.partition_time_window
     today = dt.datetime.now(ZoneInfo(TIMEZONE)).date()
     points = weather.client().hourly(latitude, longitude, window.start, window.end, today)
     with thingsflow.session() as session:
-        device_id = session.ensure_device(WEATHER_DEVICE, "weather", "Weather")
         name = model["building"]["name"]
         building = session.assets().get(name)
         if building is None:
             raise dg.Failure(
                 f"building {name!r} is not in ThingsFlow yet; materialise thingsflow_asset_model first"
             )
+        device_id = session.ensure_device(WEATHER_DEVICE, "weather", "Weather")
         session.save_relation(entity_ref("ASSET", building.id.id), entity_ref("DEVICE", device_id), "Contains")
         if points:
             session.ingest(thingsflow.ingest_url, session.device_jwt(device_id), points)
@@ -309,7 +311,9 @@ defs = dg.Definitions(
             username=dg.EnvVar("THINGSFLOW_USERNAME"),
             password=dg.EnvVar("THINGSFLOW_PASSWORD"),
             monitor_device_id=dg.EnvVar("GATE_MONITOR_DEVICE_ID"),
-            ingest_url=dg.EnvVar("THINGSFLOW_INGEST_URL"),
+            # Read like asset_history: a Dagster EnvVar cannot have a default, and
+            # the asset-model sync and sensor run without the ingest gateway.
+            ingest_url=os.environ.get("THINGSFLOW_INGEST_URL", ""),
             asset_history=os.environ.get("GATE_ASSET_HISTORY", "false").lower() == "true",
         ),
         "asset_model_file": AssetModelFile(path=dg.EnvVar("GATE_ASSET_MODEL_PATH")),

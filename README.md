@@ -51,7 +51,7 @@ Environment, set by the chart:
 | `THINGSFLOW_USERNAME` / `THINGSFLOW_PASSWORD` | tenant-admin account dedicated to GATE (Secret) |
 | `GATE_MONITOR_DEVICE_ID` | ThingsFlow id of the Refoss device |
 | `GATE_ASSET_MODEL_PATH` | path of the mounted asset model |
-| `THINGSFLOW_INGEST_URL` | ThingsFlow HTTP ingest gateway (required), in-cluster by default |
+| `THINGSFLOW_INGEST_URL` | ThingsFlow HTTP ingest gateway, in-cluster by default; required by `weather_observations` only |
 | `GATE_ASSET_HISTORY` | `true` writes `circuit_daily_metrics` to assets as telemetry; default `false` |
 
 ThingsFlow has no API keys, so GATE uses a dedicated tenant-admin user. Create
@@ -71,6 +71,7 @@ uv sync
 uv run pytest
 THINGSFLOW_URL=http://localhost:8082 THINGSFLOW_USERNAME=tenant@thingsboard.org \
 THINGSFLOW_PASSWORD=tenant GATE_MONITOR_DEVICE_ID=<device-id> \
+THINGSFLOW_INGEST_URL=http://localhost:8081 \
 GATE_ASSET_MODEL_PATH=charts/gate-cloud/files/asset_model.yaml uv run dagster dev
 ```
 
