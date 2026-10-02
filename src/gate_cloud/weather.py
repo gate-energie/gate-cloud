@@ -1,9 +1,11 @@
 """Hourly weather at the building, from Open-Meteo.
 
 Open-Meteo needs no API key, so there is no secret to hold or rotate. Its
-forecast endpoint serves roughly the last 92 days; anything older comes from the
-archive endpoint, which lags a few days. Requests are split at
-FORECAST_DAYS_BACK so a backfill never straddles the two.
+forecast endpoint serves model data for recent days but returns null values for
+dates older than about 2 months. The archive endpoint is complete up to 2 days
+ago and is used for older dates. Requests are split at FORECAST_DAYS_BACK so
+the forecast endpoint is used only for the last 7 days and the archive for
+everything older.
 
 Free tier: non-commercial use, 10 000 calls/day. GATE is UQTR research.
 """
@@ -16,7 +18,7 @@ import requests
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
-FORECAST_DAYS_BACK = 60  # well inside the forecast endpoint's ~92-day window
+FORECAST_DAYS_BACK = 7  # forecast endpoint's reliable coverage is the last 7 days
 
 # Open-Meteo hourly variable -> telemetry key on the GATE Weather device.
 VARIABLES = {

@@ -31,12 +31,12 @@ def test_recent_range_uses_forecast_only():
 
 
 def test_range_straddling_the_boundary_splits_without_overlap():
-    start = dt.datetime(2026, 5, 1, tzinfo=UTC)
-    end = dt.datetime(2026, 9, 1, tzinfo=UTC)
-    today = dt.date(2026, 10, 1)  # forecast covers today - 60 days onwards
+    start = dt.datetime(2026, 9, 1, tzinfo=UTC)
+    end = dt.datetime(2026, 10, 1, tzinfo=UTC)
+    today = dt.date(2026, 10, 1)  # forecast covers today - 7 days onwards
     assert plan_requests(start, end, today) == [
-        ("archive", dt.date(2026, 5, 1), dt.date(2026, 8, 1)),
-        ("forecast", dt.date(2026, 8, 2), dt.date(2026, 8, 31)),
+        ("archive", dt.date(2026, 9, 1), dt.date(2026, 9, 23)),
+        ("forecast", dt.date(2026, 9, 24), dt.date(2026, 9, 30)),
     ]
 
 
