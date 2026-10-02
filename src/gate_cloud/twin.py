@@ -198,3 +198,24 @@ def summary_attributes(
         "twin_window_start": window.start_ms,
         "twin_window_end": window.end_ms,
     }
+
+
+def month_window(today: dt.date, tz: str = TIMEZONE) -> Window | None:
+    """The current month up to today 00:00 (yesterday inclusive); None on the 1st."""
+    if today.day == 1:
+        return None
+    return Window(local_day(today.replace(day=1), tz).start_ms, local_day(today, tz).start_ms)
+
+
+def month_budget(energy_kwh: float | None, elapsed_days: int, days_in_month: int, rate: RateD,
+                 monthly_budget: float | None) -> dict:
+    """Month-to-date cost against the budget, and the cost projected to month end."""
+    if energy_kwh is None or elapsed_days <= 0:
+        return dict.fromkeys(("month_energy_kwh", "month_cost_cad", "month_budget_used_pct", "month_projected_cost_cad"))
+    cost = rate.cost(energy_kwh, days=elapsed_days, apply_fixed_charge=True)["total"]
+    return {
+        "month_energy_kwh": round(energy_kwh, 3),
+        "month_cost_cad": cost,
+        "month_budget_used_pct": round(100 * cost / monthly_budget, 1) if monthly_budget else None,
+        "month_projected_cost_cad": round(cost * days_in_month / elapsed_days, 2),
+    }

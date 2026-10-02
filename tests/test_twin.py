@@ -12,6 +12,8 @@ from gate_cloud.twin import (
     allocate,
     circuit_metrics,
     local_day,
+    month_budget,
+    month_window,
     pearson,
     summary_attributes,
     weather_day,
@@ -171,3 +173,31 @@ def test_summary_carries_the_quality_flag():
     flagged.quality = "negative_power"
     attrs = summary_attributes(Window(0, 30 * 24 * HOUR), flagged, [], [], [], None, 15 * MIN)
     assert attrs["twin_quality"] == "negative_power"
+
+
+def test_month_window_runs_from_the_first_to_today():
+    w = month_window(dt.date(2026, 10, 2))
+    assert w == Window(local_day(dt.date(2026, 10, 1)).start_ms, local_day(dt.date(2026, 10, 2)).start_ms)
+
+
+def test_month_window_is_none_on_the_first():
+    assert month_window(dt.date(2026, 11, 1)) is None
+
+
+def test_month_window_spans_dst_change():
+    w = month_window(dt.date(2026, 11, 3))  # Nov 1 is 25 h
+    assert w.minutes == (25 + 24) * 60
+
+
+def test_month_budget_projects_to_the_full_month():
+    b = month_budget(300.0, elapsed_days=10, days_in_month=31, rate=RateD(), monthly_budget=150.0)
+    cost = RateD().cost(300.0, days=10, apply_fixed_charge=True)["total"]
+    assert b["month_energy_kwh"] == 300.0 and b["month_cost_cad"] == cost
+    assert b["month_projected_cost_cad"] == round(cost * 31 / 10, 2)
+    assert b["month_budget_used_pct"] == round(100 * cost / 150.0, 1)
+
+
+def test_month_budget_without_energy_or_budget_is_unknown():
+    assert set(month_budget(None, 10, 31, RateD(), 150.0).values()) == {None}
+    b = month_budget(300.0, 10, 31, RateD(), None)
+    assert b["month_budget_used_pct"] is None and b["month_cost_cad"] is not None
