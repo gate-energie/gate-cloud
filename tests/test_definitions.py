@@ -1,9 +1,11 @@
 """The Dagster wiring: the asset materialises, the sensor fires only on change."""
+import datetime as dt
 import json
 
 import dagster as dg
 
 from gate_cloud import definitions as d
+from gate_cloud.weather import OpenMeteo
 from tests.fakes import FakeThingsFlow, circuit_map
 
 MODEL_YAML = """
@@ -29,7 +31,7 @@ def resources(tmp_path, circuits):
     model.write_text(MODEL_YAML)
     SHARED.__init__(device_attributes={"circuit_map": circuits})
     return {
-        "thingsflow": FakeThingsFlowResource(url="x", username="u", password="p", monitor_device_id="dev-1"),
+        "thingsflow": FakeThingsFlowResource(url="x", username="u", password="p", monitor_device_id="dev-1", ingest_url="http://ingest"),
         "asset_model_file": d.AssetModelFile(path=str(model)),
     }
 
@@ -64,3 +66,38 @@ def test_sensor_requests_a_run_only_when_inputs_change(tmp_path):
     SHARED.device_attributes["circuit_map"] = circuit_map("heating", "lights")
     changed = d.asset_model_inputs_changed(dg.build_sensor_context(cursor=first.run_key, resources=res))
     assert isinstance(changed, dg.RunRequest) and changed.run_key != first.run_key
+
+
+MODEL_WITH_SITE = MODEL_YAML.replace(
+    "building: {name: B}", "building: {name: B, attributes: {latitude: 46.35, longitude: -72.58}}"
+)
+
+
+class FakeWeather(d.WeatherResource):
+    def client(self):
+        class C(OpenMeteo):
+            def hourly(self, latitude, longitude, start, end, today):
+                hours = int((end - start).total_seconds() // 3600)
+                return [
+                    {"ts": int(start.timestamp() * 1000) + h * 3_600_000, "values": {"temperature_c": 1.0}}
+                    for h in range(hours)
+                ]
+
+        return C("f", "a")
+
+
+def weather_resources(tmp_path):
+    res = resources(tmp_path, circuit_map("heating"))
+    (tmp_path / "asset_model.yaml").write_text(MODEL_WITH_SITE)
+    res["weather"] = FakeWeather()
+    return res
+
+
+def test_weather_partition_ingests_one_point_per_hour_to_the_weather_device(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    result = dg.materialize([d.weather_observations], partition_key="2026-09-30-10:00", resources=res)
+    assert result.success
+    url, jwt, points = SHARED.ingested[-1]
+    assert jwt == "jwt-device-GATE Weather" and len(points) == 1
+    assert ("asset-B", "device-GATE Weather", "Contains") in SHARED.relations

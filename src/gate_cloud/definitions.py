@@ -12,8 +12,10 @@ The sensor is on from deployment; nobody has to start it in the UI.
 Runs are idempotent, so a duplicate trigger costs a few reads.
 """
 
+import datetime as dt
 import hashlib
 import json
+import os
 from typing import Any
 
 import dagster as dg
@@ -21,6 +23,13 @@ import yaml
 
 from gate_cloud.asset_model import apply_plan, build_plan
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
+from gate_cloud.weather import ARCHIVE_URL, FORECAST_URL, OpenMeteo
+
+TIMEZONE = "America/Toronto"
+HISTORY_START = "2026-09-01"  # first partition day; confirm with the user before release
+WEATHER_DEVICE = "GATE Weather"
+
+hourly = dg.HourlyPartitionsDefinition(start_date=f"{HISTORY_START}-00:00", timezone=TIMEZONE)
 
 
 class ThingsFlowResource(dg.ConfigurableResource):
@@ -30,6 +39,8 @@ class ThingsFlowResource(dg.ConfigurableResource):
     username: str
     password: str
     monitor_device_id: str
+    ingest_url: str
+    asset_history: bool = False
 
     def session(self) -> ThingsFlow:
         return ThingsFlow(self.url, self.username, self.password)
@@ -107,10 +118,60 @@ def asset_model_inputs_changed(
     return dg.RunRequest(run_key=digest)
 
 
+class WeatherResource(dg.ConfigurableResource):
+    """Open-Meteo endpoints; overridable for tests and mirrors."""
+
+    forecast_url: str = FORECAST_URL
+    archive_url: str = ARCHIVE_URL
+
+    def client(self) -> OpenMeteo:
+        return OpenMeteo(self.forecast_url, self.archive_url)
+
+
+def site(asset_model: dict[str, Any]) -> tuple[float, float]:
+    attributes = (asset_model.get("building") or {}).get("attributes") or {}
+    return float(attributes["latitude"]), float(attributes["longitude"])
+
+
+@dg.asset(
+    group_name="weather",
+    partitions_def=hourly,
+    backfill_policy=dg.BackfillPolicy.single_run(),
+    retry_policy=dg.RetryPolicy(max_retries=3, delay=60, backoff=dg.Backoff.EXPONENTIAL),
+    description="Hourly Open-Meteo observations at the building, ingested into the GATE Weather device.",
+)
+def weather_observations(
+    context: dg.AssetExecutionContext,
+    thingsflow: ThingsFlowResource,
+    asset_model_file: AssetModelFile,
+    weather: WeatherResource,
+) -> dg.MaterializeResult:
+    model = asset_model_file.load()
+    latitude, longitude = site(model)
+    window = context.partition_time_window
+    points = weather.client().hourly(latitude, longitude, window.start, window.end, dt.date.today())
+    with thingsflow.session() as session:
+        device_id = session.ensure_device(WEATHER_DEVICE, "weather", "Weather")
+        building = session.assets()[model["building"]["name"]]
+        session.save_relation(entity_ref("ASSET", building.id.id), entity_ref("DEVICE", device_id), "Contains")
+        if points:
+            session.ingest(thingsflow.ingest_url, session.device_jwt(device_id), points)
+    expected = int((window.end - window.start).total_seconds() // 3600)
+    if len(points) < expected:
+        context.log.warning(f"Open-Meteo returned {len(points)} of {expected} hours")
+    return dg.MaterializeResult(metadata={"hours": len(points), "expected_hours": expected})
+
+
+weather_job = dg.define_asset_job("weather", selection=[weather_observations], partitions_def=hourly)
+hourly_weather_schedule = dg.build_schedule_from_partitioned_job(
+    weather_job, minute_of_hour=10, default_status=dg.DefaultScheduleStatus.RUNNING
+)
+
+
 defs = dg.Definitions(
-    assets=[thingsflow_asset_model],
-    jobs=[sync_asset_model_job],
-    schedules=[daily_asset_model_sync],
+    assets=[thingsflow_asset_model, weather_observations],
+    jobs=[sync_asset_model_job, weather_job],
+    schedules=[daily_asset_model_sync, hourly_weather_schedule],
     sensors=[asset_model_inputs_changed],
     resources={
         "thingsflow": ThingsFlowResource(
@@ -118,7 +179,10 @@ defs = dg.Definitions(
             username=dg.EnvVar("THINGSFLOW_USERNAME"),
             password=dg.EnvVar("THINGSFLOW_PASSWORD"),
             monitor_device_id=dg.EnvVar("GATE_MONITOR_DEVICE_ID"),
+            ingest_url=dg.EnvVar("THINGSFLOW_INGEST_URL"),
+            asset_history=os.environ.get("GATE_ASSET_HISTORY", "false").lower() == "true",
         ),
         "asset_model_file": AssetModelFile(path=dg.EnvVar("GATE_ASSET_MODEL_PATH")),
+        "weather": WeatherResource(),
     },
 )
