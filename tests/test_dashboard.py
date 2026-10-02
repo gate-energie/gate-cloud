@@ -1,9 +1,10 @@
 """Dashboard template rendering. Pure: dicts in, dicts out."""
 import copy
+import zlib
 
 import pytest
 
-from gate_cloud.dashboard import CircuitSeries, TemplateError, render, templatize, unsupported
+from gate_cloud.dashboard import PALETTE, CircuitSeries, TemplateError, render, templatize, unsupported
 
 TEMPLATE = {
     "title": "GATE — Operación",
@@ -73,3 +74,46 @@ def test_unsupported_aliases_and_bindings_are_reported():
         {"type": "entity", "entityAliasId": "monitor", "dataKeys": []}]}}
     problems = "\n".join(unsupported(bad))
     assert "entityList" in problems and "w3" in problems and "w4" in problems
+
+
+REAL_KEYS = ["heating", "heating_storage", "air_conditioner", "ventilation", "air_exchanger", "water_heater",
+             "stove", "dishwasher", "range_hood", "refrigerator", "lights", "outlet", "plug_27", "plug_29",
+             "plug_31_33", "plug_36_38"]
+
+
+def _colours(keys):
+    out = render(TEMPLATE, "dev-1", "wx-1", [CircuitSeries(k, k) for k in keys], ["HVAC"])
+    return {k["label"]: k["color"] for k in out["configuration"]["widgets"]["w1"]["config"]["datasources"][0]["dataKeys"]}
+
+
+def test_palette_has_no_repeats():
+    assert len(set(PALETTE)) == len(PALETTE) == 20
+
+
+def test_real_circuits_get_distinct_colours():
+    assert len(set(_colours(REAL_KEYS).values())) == 16
+
+
+def test_colours_of_16_real_circuits_survive_a_17th_sorting_first():
+    before = _colours(REAL_KEYS)
+    used = {PALETTE.index(c) for c in before.values()}
+    new = next(k for k in (f"aaa_new{i}" for i in range(100))
+               if zlib.crc32(k.encode()) % len(PALETTE) not in used)  # preferred slot is free
+    after = _colours(REAL_KEYS + [new])
+    assert new < min(REAL_KEYS)
+    assert {k: after[k] for k in REAL_KEYS} == before
+    assert after[new] not in before.values()
+
+
+def test_duplicate_circuit_keys_and_empty_ids_are_rejected():
+    with pytest.raises(TemplateError, match="duplicate"):
+        render(TEMPLATE, "dev-1", "wx-1", [CircuitSeries("a", "A"), CircuitSeries("a", "B")], [])
+    with pytest.raises(TemplateError):
+        templatize(rendered(), "", "wx-1")
+
+
+def test_entity_label_on_single_entity_alias_is_reported():
+    bad = copy.deepcopy(rendered())
+    bad["configuration"]["widgets"]["w5"] = {"typeFullFqn": "system.cards.value_card", "config": {"title": "t", "datasources": [
+        {"type": "entity", "entityAliasId": "weather", "dataKeys": [{"label": "${entityLabel}"}]}]}}
+    assert any("w5" in p for p in unsupported(bad))

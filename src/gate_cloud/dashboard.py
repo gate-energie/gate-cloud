@@ -14,9 +14,12 @@ not handle entityList, entityName or *SearchQuery aliases, and returns the
 entity id for `${entityName}` on a singleEntity alias. `unsupported` reports
 what would silently render empty or show ids, so it fails before publishing.
 
-Colours: each circuit's palette index is a stable hash (crc32) of its key, not
-its position in the sorted list, so adding a circuit never recolours the
-others. Two circuits may share a colour; that is the price of stability.
+Colours: a circuit prefers the palette slot given by a stable hash (crc32) of
+its key, not its position in the sorted list. Keys are processed in sorted
+order and a taken slot is skipped by linear probing to the next free one, so up
+to len(PALETTE) circuits get distinct colours. Adding a circuit leaves the
+others unchanged unless it takes a slot an existing circuit had reached by
+probing. Beyond len(PALETTE) circuits the palette wraps and colours repeat.
 """
 from __future__ import annotations
 
@@ -30,10 +33,10 @@ from dataclasses import dataclass
 from typing import Any
 
 PALETTE = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-    "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-    "#393b79", "#e6550d", "#31a354", "#756bb1", "#843c39",
-    "#636363", "#b5cf6b", "#9c9ede", "#e7ba52", "#ad494a",
+    "#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4",
+    "#42d4f4", "#f032e6", "#bfef45", "#ff8fab", "#469990",
+    "#9a6324", "#800000", "#808000", "#000075", "#a9a9a9",
+    "#ffe119", "#00bfa5", "#d2b48c", "#2f4f4f", "#7c4dff",
 ]
 TIMESERIES_FQNS = {"system.time_series_chart"}
 FORBIDDEN = {"entityList", "entityName", "relationsQuery", "assetSearchQuery",
@@ -55,13 +58,23 @@ class CircuitSeries:
     label: str
 
 
-def colour(key: str) -> str:
-    return PALETTE[zlib.crc32(key.encode()) % len(PALETTE)]
+def colours(keys: list[str]) -> dict[str, str]:
+    taken: set[int] = set()
+    out = {}
+    for key in sorted(keys):
+        slot = zlib.crc32(key.encode()) % len(PALETTE)
+        if len(taken) >= len(PALETTE):
+            taken.clear()  # palette exhausted: wrap around and reuse
+        while slot in taken:
+            slot = (slot + 1) % len(PALETTE)
+        taken.add(slot)
+        out[key] = PALETTE[slot]
+    return out
 
 
-def _data_key(series: CircuitSeries) -> dict:
+def _data_key(series: CircuitSeries, color: str) -> dict:
     return {"name": f"{series.key}_active_power", "type": "timeseries", "label": series.label,
-            "color": colour(series.key), "units": "W", "decimals": 0, "settings": {}}
+            "color": color, "units": "W", "decimals": 0, "settings": {}}
 
 
 def _map(node: Any, fn) -> Any:
@@ -75,7 +88,11 @@ def _map(node: Any, fn) -> Any:
 
 def render(template: dict, monitor_id: str, weather_id: str,
            circuits: list[CircuitSeries], asset_types: list[str]) -> dict:
-    keys = [_data_key(c) for c in sorted(circuits, key=lambda c: c.key)]
+    names = [c.key for c in circuits]
+    if len(set(names)) != len(names):
+        raise TemplateError("duplicate circuit keys")
+    palette = colours(names)
+    keys = [_data_key(c, palette[c.key]) for c in sorted(circuits, key=lambda c: c.key)]
 
     def fill(node: Any) -> Any:
         if node == ASSET_TYPES_PLACEHOLDER:
@@ -95,6 +112,8 @@ def render(template: dict, monitor_id: str, weather_id: str,
 
 
 def templatize(dashboard: dict, monitor_id: str, weather_id: str) -> dict:
+    if not monitor_id or not weather_id:
+        raise TemplateError("monitor and weather ids must not be empty")
     def back(node: Any) -> Any:
         if isinstance(node, str):
             return node.replace(monitor_id, "${MONITOR_DEVICE_ID}").replace(weather_id, "${WEATHER_DEVICE_ID}")
