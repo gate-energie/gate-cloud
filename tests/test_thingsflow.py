@@ -37,6 +37,15 @@ def test_fake_avg_buckets_like_the_server():
     assert out == {"p": [(0, 1.5), (2 * MIN, 3.5)]}
 
 
+def test_fake_buckets_are_aligned_to_the_epoch_not_to_start():
+    # flow-core: date_bin('<interval> ms', ts) with no origin -> floor(ts / interval) * interval
+    fake, entity = _fake_with_minutes()
+    out = fake.timeseries(entity, ["p"], MIN, 4 * MIN, interval_ms=2 * MIN, agg="AVG")
+    assert out == {"p": [(0, 2.0), (2 * MIN, 3.5)]}
+    out = fake.timeseries(entity, ["p"], MIN, 4 * MIN, interval_ms=2 * MIN, agg="MAX")
+    assert out == {"p": [(0, 2.0), (2 * MIN, 4.0)]}
+
+
 def test_fake_max_buckets_and_single_point_without_interval():
     fake, entity = _fake_with_minutes()
     assert fake.timeseries(entity, ["p"], 0, 4 * MIN, interval_ms=2 * MIN, agg="MAX") == {"p": [(0, 2.0), (2 * MIN, 4.0)]}

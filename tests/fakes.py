@@ -76,7 +76,8 @@ class FakeThingsFlow:
         self.relations.add((from_entity.id, to_entity.id, relation_type))
 
     def timeseries(self, entity, keys, start_ms, end_ms, interval_ms=0, agg="NONE"):
-        """Like flow-core: agg applies only with an interval; buckets start at start_ms."""
+        """Like flow-core: agg applies only with an interval; buckets are
+        date_bin with no origin, so aligned to the Unix epoch, not to start_ms."""
         out = {}
         for key in keys:
             points = [(t, v) for t, v in self.series.get((entity.id, key), []) if start_ms <= t < end_ms]
@@ -84,9 +85,9 @@ class FakeThingsFlow:
                 if interval_ms > 0:
                     buckets: dict[int, list[float]] = {}
                     for t, v in points:
-                        buckets.setdefault((t - start_ms) // interval_ms, []).append(v)
+                        buckets.setdefault(t // interval_ms * interval_ms, []).append(v)
                     reduce = (lambda vs: sum(vs) / len(vs)) if agg == "AVG" else max
-                    points = [(start_ms + b * interval_ms, reduce(vs)) for b, vs in sorted(buckets.items())]
+                    points = [(b, reduce(vs)) for b, vs in sorted(buckets.items())]
                 elif agg == "MAX":
                     points = [(points[0][0], max(v for _, v in points))]
             out[key] = points
