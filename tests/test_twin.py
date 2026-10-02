@@ -116,6 +116,11 @@ def test_pearson_is_none_when_unknowable():
     assert pearson(pairs, min_pairs=192) == 1.0
 
 
+def test_pearson_constant_non_representable_series_is_none():
+    assert pearson([(21.3, float(i)) for i in range(193)], min_pairs=192) is None
+    assert pearson([(float(i), 21.3) for i in range(193)], min_pairs=192) is None
+
+
 def test_align_hourly_maps_buckets_to_their_hour():
     power = [(0, 1.0), (15 * MIN, 2.0), (HOUR, 3.0), (2 * HOUR, 4.0)]
     weather = [(0, 10.0), (HOUR, 20.0)]

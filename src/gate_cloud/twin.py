@@ -137,13 +137,15 @@ def pearson(pairs: list[tuple[float, float]], min_pairs: int) -> float | None:
     n = len(pairs)
     if n < min_pairs:
         return None
-    mx = sum(x for x, _ in pairs) / n
-    my = sum(y for _, y in pairs) / n
-    sxx = sum((x - mx) ** 2 for x, _ in pairs)
-    syy = sum((y - my) ** 2 for _, y in pairs)
-    if sxx == 0 or syy == 0:
+    xs = [x for x, _ in pairs]
+    ys = [y for _, y in pairs]
+    if min(xs) == max(xs) or min(ys) == max(ys):
         return None
-    sxy = sum((x - mx) * (y - my) for x, y in pairs)
+    mx = sum(xs) / n
+    my = sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    syy = sum((y - my) ** 2 for y in ys)
+    sxy = sum((xs[i] - mx) * (ys[i] - my) for i in range(n))
     return round(sxy / (sxx * syy) ** 0.5, 2)
 
 
