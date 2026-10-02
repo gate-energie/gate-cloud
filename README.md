@@ -66,6 +66,7 @@ Edit the dashboard in the ThingsFlow UI, then export it as JSON. Turn the
 export back into the template with
 `uv run python -m gate_cloud.dashboard templatize export.json <monitor-id> <weather-id> > charts/gate-cloud/files/dashboard.json`
 and commit it. UI edits are otherwise overwritten by the next sync.
+ThingsFlow does not sort entity tables yet, so the circuits table lists rows in creation order.
 
 ThingsFlow has no API keys, so GATE uses a dedicated tenant-admin user. Create
 it in ThingsFlow and store its credentials in the Secret named by

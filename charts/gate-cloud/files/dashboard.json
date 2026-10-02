@@ -1784,7 +1784,6 @@
             "defaultPageSize": 20,
             "pageStepCount": 3,
             "pageStepIncrement": 10,
-            "defaultSortOrder": "-twin_energy_kwh",
             "useRowStyleFunction": false
           },
           "title": "Circuitos (30 días)",
