@@ -22,8 +22,11 @@ from typing import Any
 import dagster as dg
 import yaml
 
+from gate_cloud.analytics import measure, read_weather
 from gate_cloud.asset_model import apply_plan, build_plan
+from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
+from gate_cloud.twin import Window, local_day, summary_attributes, weather_day
 from gate_cloud.weather import ARCHIVE_URL, FORECAST_URL, OpenMeteo
 
 TIMEZONE = "America/Toronto"
@@ -177,10 +180,118 @@ hourly_weather_schedule = dg.build_schedule_from_partitioned_job(
 )
 
 
+daily = dg.DailyPartitionsDefinition(start_date=HISTORY_START, timezone=TIMEZONE)
+MINUTE_MS, QUARTER_MS = 60_000, 900_000
+SUMMARY_DAYS = 30
+
+
+def _context(session, thingsflow: ThingsFlowResource, model: dict[str, Any]):
+    plan = build_plan(thingsflow.circuit_map(session), model)
+    rate = RateD.from_attributes((model.get("building") or {}).get("attributes") or {})
+    weather = session.devices().get(WEATHER_DEVICE)
+    weather_ref = entity_ref("DEVICE", weather.id.id) if weather else None
+    return plan, rate, entity_ref("DEVICE", thingsflow.monitor_device_id), weather_ref
+
+
+@dg.asset(
+    group_name="twin",
+    partitions_def=daily,
+    deps=[weather_observations, thingsflow_asset_model],
+    description="Per-circuit and building metrics for one local day; written to assets when asset_history is on.",
+)
+def circuit_daily_metrics(
+    context: dg.AssetExecutionContext, thingsflow: ThingsFlowResource, asset_model_file: AssetModelFile
+) -> dg.MaterializeResult:
+    model = asset_model_file.load()
+    window = local_day(dt.date.fromisoformat(context.partition_key))
+    with thingsflow.session() as session:
+        plan, rate, monitor, weather_device = _context(session, thingsflow, model)
+        found, _, result = measure(session, monitor, plan, rate, window, MINUTE_MS, days=1)
+        temperature, humidity = read_weather(session, weather_device, window)
+        building = {**result.building, **weather_day(temperature, humidity, window)}
+        if thingsflow.asset_history:
+            ids = {c.name: c.asset_id for c in found}
+            for name, m in result.circuits.items():
+                values = {k: v for k, v in m.as_values().items() if v is not None}
+                session.save_timeseries(entity_ref("ASSET", ids[name]), {"ts": window.start_ms, "values": values})
+            building_name = model["building"]["name"]
+            building_asset = session.assets().get(building_name)
+            if building_asset is None:
+                raise dg.Failure(
+                    f"building {building_name!r} is not in ThingsFlow yet; materialise thingsflow_asset_model first"
+                )
+            building_id = building_asset.id.id
+            values = {k: v for k, v in building.items() if v is not None}
+            session.save_timeseries(entity_ref("ASSET", building_id), {"ts": window.start_ms, "values": values})
+    for name in result.no_data:
+        context.log.warning(f"circuit {name!r} has no data on {context.partition_key}")
+    return dg.MaterializeResult(metadata={
+        "building_energy_kwh": building.get("energy_kwh"),
+        "building_cost_cad": building.get("cost_cad"),
+        "temp_mean_c": building.get("temp_mean_c"),
+        "no_data": result.no_data,
+        "written_to_assets": thingsflow.asset_history,
+        "circuits": dg.MetadataValue.md(_table(result.circuits)),
+    })
+
+
+def _table(metrics) -> str:
+    rows = ["| circuit | kWh | source | avg W | max W | util % | cover % | frac % | CAD |", "|---|---|---|---|---|---|---|---|---|"]
+    for name, m in sorted(metrics.items()):
+        rows.append(f"| {name} | {m.energy_kwh} | {m.energy_source} | {m.avg_power_w} | {m.max_power_w} | "
+                    f"{m.utilization_pct} | {m.coverage_pct} | {m.energy_fraction_pct} | {m.cost_cad} |")
+    return "\n".join(rows)
+
+
+class SummaryConfig(dg.Config):
+    end_date: str | None = None  # local date the window ends on (exclusive); default today in TIMEZONE
+
+
+@dg.asset(
+    group_name="twin",
+    deps=[weather_observations, thingsflow_asset_model],
+    description="30-day twin summary per circuit, written as twin_* SERVER_SCOPE attributes.",
+)
+def asset_twin_summary(
+    context: dg.AssetExecutionContext, config: SummaryConfig, thingsflow: ThingsFlowResource,
+    asset_model_file: AssetModelFile,
+) -> dg.MaterializeResult:
+    model = asset_model_file.load()
+    end_day = dt.date.fromisoformat(config.end_date) if config.end_date else dt.datetime.now(ZoneInfo(TIMEZONE)).date()
+    window = Window(local_day(end_day - dt.timedelta(days=SUMMARY_DAYS)).start_ms, local_day(end_day).start_ms)
+    now_ms = int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000)
+    with thingsflow.session() as session:
+        plan, rate, monitor, weather_device = _context(session, thingsflow, model)
+        found, inputs, result = measure(session, monitor, plan, rate, window, QUARTER_MS, days=SUMMARY_DAYS)
+        temperature, humidity = read_weather(session, weather_device, window)
+        for c in found:
+            m = result.circuits.get(c.name)
+            if m is None:
+                continue
+            attrs = summary_attributes(window, m, inputs[c.name].power, temperature, humidity, c.rated_power_w, QUARTER_MS)
+            attrs["twin_updated_at"] = now_ms
+            session.save_attributes(entity_ref("ASSET", c.asset_id), "SERVER_SCOPE", attrs)
+    return dg.MaterializeResult(metadata={
+        "window_start": window.start_ms, "window_end": window.end_ms,
+        "circuits": len(result.circuits), "no_data": result.no_data,
+    })
+
+
+daily_metrics_job = dg.define_asset_job("daily_metrics", selection=[circuit_daily_metrics])
+daily_metrics_schedule = dg.build_schedule_from_partitioned_job(
+    daily_metrics_job, hour_of_day=1, minute_of_hour=30, default_status=dg.DefaultScheduleStatus.RUNNING
+)
+twin_summary_job = dg.define_asset_job("twin_summary", selection=[asset_twin_summary])
+twin_summary_schedule = dg.ScheduleDefinition(
+    job=twin_summary_job, cron_schedule="45 1 * * *", execution_timezone=TIMEZONE,
+    default_status=dg.DefaultScheduleStatus.RUNNING,
+)
+
+
 defs = dg.Definitions(
-    assets=[thingsflow_asset_model, weather_observations],
-    jobs=[sync_asset_model_job, weather_job],
-    schedules=[daily_asset_model_sync, hourly_weather_schedule],
+    assets=[thingsflow_asset_model, weather_observations, circuit_daily_metrics, asset_twin_summary],
+    jobs=[sync_asset_model_job, weather_job, daily_metrics_job, twin_summary_job],
+    schedules=[daily_asset_model_sync, hourly_weather_schedule, daily_metrics_schedule, twin_summary_schedule],
     sensors=[asset_model_inputs_changed],
     resources={
         "thingsflow": ThingsFlowResource(
