@@ -1,6 +1,8 @@
 """Dashboard template rendering. Pure: dicts in, dicts out."""
 import copy
+import json
 import zlib
+from pathlib import Path
 
 import pytest
 
@@ -117,3 +119,23 @@ def test_entity_label_on_single_entity_alias_is_reported():
     bad["configuration"]["widgets"]["w5"] = {"typeFullFqn": "system.cards.value_card", "config": {"title": "t", "datasources": [
         {"type": "entity", "entityAliasId": "weather", "dataKeys": [{"label": "${entityLabel}"}]}]}}
     assert any("w5" in p for p in unsupported(bad))
+
+
+REAL = json.loads(Path("charts/gate-cloud/files/dashboard.json").read_text(encoding="utf-8"))
+
+
+def test_real_template_renders_and_is_supported():
+    out = render(REAL, "dev-1", "wx-1", CIRCUITS, ["HVAC", "Lighting"])
+    assert out["title"] == "GATE — Operación"
+    states = out["configuration"]["states"]
+    assert set(states) == {"operation", "circuits", "weather"} and states["operation"]["root"] is True
+    assert unsupported(out) == []
+    assert templatize(out, "dev-1", "wx-1") == REAL
+
+
+def test_every_layout_widget_exists_and_fits_the_grid():
+    conf = REAL["configuration"]
+    for state in conf["states"].values():
+        for wid, pos in state["layouts"]["main"]["widgets"].items():
+            assert wid in conf["widgets"]
+            assert pos["col"] + pos["sizeX"] <= 24
