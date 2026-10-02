@@ -107,11 +107,12 @@ class DashboardStub:
 
     def get_dashboard_by_id(self, dashboard_id):
         d = next(d for d in self._existing.values() if d["id"] == dashboard_id.id)
-        return SimpleNamespace(configuration=d["configuration"])
+        return SimpleNamespace(id=SimpleNamespace(id=d["id"]), title=d["title"], configuration=d["configuration"],
+                               assigned_customers=d.get("assigned_customers"))
 
     def save_dashboard(self, body=None):
         self.saved.append(body)
-        return SimpleNamespace(id=SimpleNamespace(id=body.id.id if body.id else "dash-new"))
+        return SimpleNamespace(id=SimpleNamespace(id=body.id.id if getattr(body, "id", None) else "dash-new"))
 
 
 def test_dashboard_lookup_is_exact_by_title():
@@ -125,5 +126,10 @@ def test_save_dashboard_builds_the_real_model():
     stub = DashboardStub()
     assert wrapper(stub).save_dashboard("T", {"a": 1}) == "dash-new"
     assert stub.saved[0].title == "T" and stub.saved[0].configuration == {"a": 1} and stub.saved[0].id is None
-    wrapper(stub).save_dashboard("T", {"a": 2}, "d1")
-    assert stub.saved[1].id.id == "d1"
+
+
+def test_dashboard_update_keeps_the_fields_thingsflow_stores():
+    stub = DashboardStub([{"title": "Old", "id": "d1", "configuration": {"a": 1}, "assigned_customers": ["c1"]}])
+    assert wrapper(stub).save_dashboard("T", {"a": 2}, "d1") == "d1"
+    saved = stub.saved[0]
+    assert (saved.title, saved.configuration, saved.assigned_customers) == ("T", {"a": 2}, ["c1"])

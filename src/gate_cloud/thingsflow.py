@@ -220,7 +220,16 @@ class ThingsFlow:
         _checked(self._client.save_entity_telemetry(entity, "ANY", point))
 
     def save_dashboard(self, title: str, configuration: dict[str, Any], dashboard_id: str | None = None) -> str:
-        """Create a dashboard, or replace the one with `dashboard_id`; returns its id."""
-        body = Dashboard(title=title, configuration=configuration,
-                         id=DashboardId(dashboard_id, "DASHBOARD") if dashboard_id else None)
+        """Create a dashboard, or update the one with `dashboard_id`; returns its id.
+
+        An update starts from the stored object and changes only title and
+        configuration, so fields ThingsFlow keeps beside them (assignedCustomers,
+        mobileHide, ...) survive the save.
+        """
+        if dashboard_id:
+            body = _checked(self._client.get_dashboard_by_id(DashboardId(dashboard_id, "DASHBOARD")))
+            body.title = title
+            body.configuration = configuration
+        else:
+            body = Dashboard(title=title, configuration=configuration)
         return _checked(self._client.save_dashboard(body)).id.id
