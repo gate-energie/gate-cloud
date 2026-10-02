@@ -30,6 +30,10 @@ class FakeThingsFlow:
         self.relations: set[tuple[str, str, str]] = set()
         self.entity_writes = 0
         self.device_attributes = device_attributes or {}
+        self.series: dict[tuple[str, str], list[tuple[int, float]]] = {}
+        self.devices_by_name: dict[str, SimpleNamespace] = {}
+        self.ingested: list[tuple[str, str, list]] = []
+        self.asset_points: list[tuple[str, dict]] = []
 
     # context-manager surface of gate_cloud.thingsflow.ThingsFlow
     def __enter__(self) -> "FakeThingsFlow":
@@ -70,3 +74,41 @@ class FakeThingsFlow:
 
     def save_relation(self, from_entity, to_entity, relation_type: str) -> None:
         self.relations.add((from_entity.id, to_entity.id, relation_type))
+
+    def timeseries(self, entity, keys, start_ms, end_ms, interval_ms=0, agg="NONE"):
+        """Like flow-core: agg applies only with an interval; buckets start at start_ms."""
+        out = {}
+        for key in keys:
+            points = [(t, v) for t, v in self.series.get((entity.id, key), []) if start_ms <= t < end_ms]
+            if agg in ("AVG", "MAX") and points:
+                if interval_ms > 0:
+                    buckets: dict[int, list[float]] = {}
+                    for t, v in points:
+                        buckets.setdefault((t - start_ms) // interval_ms, []).append(v)
+                    reduce = (lambda vs: sum(vs) / len(vs)) if agg == "AVG" else max
+                    points = [(start_ms + b * interval_ms, reduce(vs)) for b, vs in sorted(buckets.items())]
+                elif agg == "MAX":
+                    points = [(points[0][0], max(v for _, v in points))]
+            out[key] = points
+        return out
+
+    def last_value(self, entity, key, at_ms, lookback_ms=6 * 3_600_000):
+        points = [v for t, v in self.series.get((entity.id, key), []) if at_ms - lookback_ms <= t <= at_ms]
+        return points[-1] if points else None
+
+    def devices(self):
+        return dict(self.devices_by_name)
+
+    def ensure_device(self, name, device_type, label):
+        if name not in self.devices_by_name:
+            self.devices_by_name[name] = SimpleNamespace(id=ref("DEVICE", f"device-{name}"), name=name, type=device_type)
+        return self.devices_by_name[name].id.id
+
+    def device_jwt(self, device_id):
+        return f"jwt-{device_id}"
+
+    def ingest(self, ingest_url, jwt, points):
+        self.ingested.append((ingest_url, jwt, list(points)))
+
+    def save_timeseries(self, entity, point):
+        self.asset_points.append((entity.id, point))
