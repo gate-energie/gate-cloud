@@ -134,3 +134,17 @@ def test_summary_utilization_counts_minutes_and_correlates_on_quarter_hours(tmp_
     assert attrs["twin_energy_kwh"] == 8.0 and attrs["twin_energy_source"] == "integrated"
     assert (("heating_active_power",), MINUTE_MS, "AVG") in calls
     assert (("heating_active_power",), QUARTER_MS, "AVG") in calls
+
+
+def test_weather_is_read_as_hourly_averages(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed()
+    weather = SHARED.ensure_device(d.WEATHER_DEVICE, "weather", "Weather")
+    SHARED.series[(weather, "temperature_c")] = [(t, 4.0) for t in range(DAY.start_ms, DAY.end_ms, 3_600_000)]
+    calls = recorded_reads()
+    result = dg.materialize([d.circuit_daily_metrics], partition_key="2026-09-30", resources=res)
+    meta = result.asset_materializations_for_node("circuit_daily_metrics")[0].metadata
+    assert meta["temp_mean_c"].value == 4.0
+    weather_reads = [c for c in calls if "temperature_c" in c[0]]
+    assert weather_reads == [(("temperature_c", "humidity_pct"), 3_600_000, "AVG")]

@@ -14,6 +14,7 @@ from gate_cloud.twin import CircuitInput, CircuitMetrics, Series, Window, alloca
 MAIN = "main_total"
 MINUTE_MS = 60_000  # metric buckets: "on" means a minute averaging over 10 W
 QUARTER_MS = 900_000  # correlation buckets, paired with hourly weather
+HOUR_MS = 3_600_000
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,10 @@ def read_input(session, device, key: str, window: Window) -> CircuitInput:
 def read_weather(session, weather_device, window: Window) -> tuple[Series, Series]:
     if weather_device is None:
         return [], []
-    raw = session.timeseries(weather_device, ["temperature_c", "humidity_pct"], window.start_ms, window.end_ms)
+    # Hourly averages: the weather is hourly, and a raw read is budgeted at one
+    # point per second (about 260 requests for 30 days).
+    raw = session.timeseries(weather_device, ["temperature_c", "humidity_pct"], window.start_ms, window.end_ms,
+                             HOUR_MS, "AVG")
     return raw.get("temperature_c") or [], raw.get("humidity_pct") or []
 
 
