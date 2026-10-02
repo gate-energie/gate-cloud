@@ -244,11 +244,26 @@ def _warn_missing(context: dg.AssetExecutionContext, names: list[str]) -> None:
         context.log.warning(f"circuit {name!r} has no ThingsFlow asset yet; skipped until thingsflow_asset_model runs")
 
 
+def _known(attrs: dict[str, Any]) -> dict[str, Any]:
+    """Attributes to store: the known values, plus `twin_unknown` naming the rest.
+
+    ThingsFlow stores a JSON null as the string "null", and it cannot delete
+    attributes (DELETE .../attributes returns 404), so an unknown value is not
+    written. A value left from an earlier window may then remain on the asset;
+    `twin_unknown` says it does not describe the current one.
+    """
+    known = {k: v for k, v in attrs.items() if v is not None}
+    known["twin_unknown"] = ",".join(sorted(k for k, v in attrs.items() if v is None))
+    return known
+
+
 def _table(metrics) -> str:
-    rows = ["| circuit | kWh | source | avg W | max W | util % | cover % | frac % | CAD |", "|---|---|---|---|---|---|---|---|---|"]
+    rows = ["| circuit | kWh | source | avg W | max W | util % | cover % | frac % | CAD | quality |",
+            "|---|---|---|---|---|---|---|---|---|---|"]
     for name, m in sorted(metrics.items()):
         rows.append(f"| {name} | {m.energy_kwh} | {m.energy_source} | {m.avg_power_w} | {m.max_power_w} | "
-                    f"{m.utilization_pct} | {m.coverage_pct} | {m.energy_fraction_pct} | {m.cost_cad} |")
+                    f"{m.utilization_pct} | {m.coverage_pct} | {m.energy_fraction_pct} | {m.cost_cad} | "
+                    f"{m.quality or ''} |")
     return "\n".join(rows)
 
 
@@ -281,7 +296,7 @@ def asset_twin_summary(
             power = read_power(session, monitor, c.key, window, QUARTER_MS)
             attrs = summary_attributes(window, m, power, temperature, humidity, c.rated_power_w, QUARTER_MS)
             attrs["twin_updated_at"] = now_ms
-            session.save_attributes(entity_ref("ASSET", c.asset_id), "SERVER_SCOPE", attrs)
+            session.save_attributes(entity_ref("ASSET", c.asset_id), "SERVER_SCOPE", _known(attrs))
     _warn_missing(context, result.missing_assets)
     return dg.MaterializeResult(metadata={
         "window_start": window.start_ms, "window_end": window.end_ms,

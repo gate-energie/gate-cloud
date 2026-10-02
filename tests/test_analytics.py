@@ -85,8 +85,11 @@ def test_summary_writes_twin_attributes(tmp_path):
     attrs = SHARED.attrs["asset-heating"]
     assert attrs["twin_energy_kwh"] == 24.0  # one day of 1000 W in the 30-day window
     assert attrs["twin_max_power_w"] == 1000.0
-    assert attrs["twin_health_score"] is None
     assert "twin_updated_at" in attrs
+    # Unknowns are not stored (ThingsFlow would keep the string "null"); they are listed instead.
+    assert None not in attrs.values()
+    assert "twin_health_score" not in attrs and "twin_overload" not in attrs
+    assert {"twin_health_score", "twin_overload", "twin_quality"} <= set(attrs["twin_unknown"].split(","))
 
 
 def test_daily_peak_late_in_the_local_day_is_kept(tmp_path):

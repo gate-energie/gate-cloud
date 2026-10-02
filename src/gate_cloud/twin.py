@@ -20,6 +20,10 @@ from gate_cloud.tariff import RateD
 Series = list[tuple[int, float]]
 
 ON_THRESHOLD_W = 10.0  # the legacy backend's "on" threshold
+# A load cannot return energy: negative power means a clamp installed backwards
+# (heating_storage until it was fixed at the edge). The measured value is kept
+# and flagged, and stays out of the building's fractions and costs.
+NEGATIVE_POWER = "negative_power"
 TIMEZONE = "America/Toronto"
 
 
@@ -60,6 +64,7 @@ class CircuitMetrics:
     coverage_pct: float
     energy_fraction_pct: float | None = None
     cost_cad: float | None = None
+    quality: str | None = None  # NEGATIVE_POWER when the series cannot be a load
 
     def as_values(self) -> dict:
         return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in asdict(self).items()}
@@ -81,14 +86,16 @@ def circuit_metrics(window: Window, bucket_ms: int, data: CircuitInput) -> Circu
     else:
         energy, source = sum(buckets) * bucket_hours / 1000, "integrated"
     on = sum(1 for w in buckets if w > ON_THRESHOLD_W)
+    avg = round(sum(buckets) / len(buckets), 1) if buckets else None
     return CircuitMetrics(
         energy_kwh=round(energy, 3),
         energy_source=source,
-        avg_power_w=round(sum(buckets) / len(buckets), 1) if buckets else None,
+        avg_power_w=avg,
         max_power_w=data.max_power_w,
         on_hours=round(on * bucket_hours, 2) if buckets else None,
         utilization_pct=round(100 * on / window_buckets, 1) if buckets else None,
         coverage_pct=round(100 * len(buckets) / window_buckets, 1),
+        quality=NEGATIVE_POWER if energy < 0 or (avg is not None and avg < 0) else None,
     )
 
 
@@ -102,13 +109,16 @@ def allocate(circuits: dict[str, CircuitMetrics], main: CircuitMetrics | None, r
 
     Rate D's tier-1 threshold belongs to the building, so the bill is computed
     on main_total and each circuit pays the building's effective energy rate
-    (taxes included). The fixed charge stays on the building.
+    (taxes included). The fixed charge stays on the building. A flagged
+    circuit gets neither: its numbers are not a share of the building's.
     """
     if main is None or main.energy_kwh <= 0:
         return None
     bill = rate.cost(main.energy_kwh, days=days, apply_fixed_charge=True)
     energy_rate = bill["energy_cost"] * (1 + rate.tax_rate) / main.energy_kwh
     for m in circuits.values():
+        if m.quality is not None:
+            continue
         m.energy_fraction_pct = round(100 * m.energy_kwh / main.energy_kwh, 2)
         m.cost_cad = round(m.energy_kwh * energy_rate, 2)
     return {"energy_kwh": main.energy_kwh, "cost_cad": bill["total"], "peak_power_w": main.max_power_w}
@@ -179,6 +189,7 @@ def summary_attributes(
         "twin_max_power_w": m.max_power_w,
         "twin_utilization_pct": m.utilization_pct,
         "twin_coverage_pct": m.coverage_pct,
+        "twin_quality": m.quality,
         "twin_energy_fraction_pct": m.energy_fraction_pct,
         "twin_corr_temperature": pearson(align_hourly(power, temperature), min_pairs),
         "twin_corr_humidity": pearson(align_hourly(power, humidity), min_pairs),

@@ -31,7 +31,11 @@ there.
 | schedule `daily_asset_model_sync` | Re-applies the model, restoring anything edited by hand | 06:00 America/Toronto |
 | asset `weather_observations` | Hourly Open-Meteo weather at the building, ingested into the `GATE Weather` device | hourly, :10 |
 | asset `circuit_daily_metrics` | Per-circuit and building metrics for one local day (energy from the annual counter, cost at the building's Rate D, utilisation, coverage, degree days) | daily 01:30, backfillable |
-| asset `asset_twin_summary` | 30-day summary per circuit as `twin_*` attributes (energy, cost, fraction, correlation with temperature and humidity, overload against `rated_power_w`) | daily 01:45 |
+| asset `asset_twin_summary` | 30-day summary per circuit as `twin_*` attributes (energy, cost, fraction, correlation with temperature and humidity, overload against `rated_power_w`). Unknown values are not written; `twin_unknown` lists them, so a value left from an earlier window is not mistaken for a current one | daily 01:45 |
+
+Metrics keep what the monitor measured. A circuit whose power is negative (a
+clamp installed backwards) is flagged `quality: negative_power` and left out
+of the building's fractions and costs rather than corrected.
 
 The sync looks up before it writes (a second run writes nothing) and never
 deletes: a circuit that disappears from the monitor is reported as an orphan

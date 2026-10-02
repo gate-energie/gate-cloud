@@ -142,3 +142,32 @@ def test_summary_overload_against_rating():
     assert attrs["twin_overload"] is True and attrs["twin_health_score"] == 70.0
     ok = summary_attributes(window, metrics(300.0, max_w=2100.0), [], [], [], 2000.0, 15 * MIN)
     assert ok["twin_overload"] is False and ok["twin_health_score"] == 100.0
+
+
+def test_negative_integrated_energy_is_flagged_not_rewritten():
+    # A clamp installed backwards reads negative power (heating_storage, 2026-08-10).
+    day = local_day(dt.date(2026, 8, 10))
+    m = circuit_metrics(day, MIN, CircuitInput(flat(day, -372.0), -100.0, None, None))
+    assert m.energy_kwh < 0 and m.avg_power_w == -372.0
+    assert m.quality == "negative_power"
+
+
+def test_clean_day_has_no_quality_flag():
+    day = local_day(dt.date(2026, 10, 1))
+    assert circuit_metrics(day, MIN, CircuitInput(flat(day, 500.0), 500.0, 1.0, 13.0)).quality is None
+
+
+def test_flagged_circuit_gets_no_fraction_or_cost():
+    flagged = metrics(-3.0)
+    flagged.quality = "negative_power"
+    circuits = {"heating_storage": flagged, "lights": metrics(10.0)}
+    allocate(circuits, metrics(50.0), RateD(), days=1)
+    assert flagged.energy_fraction_pct is None and flagged.cost_cad is None
+    assert circuits["lights"].energy_fraction_pct == 20.0
+
+
+def test_summary_carries_the_quality_flag():
+    flagged = metrics(-3.0)
+    flagged.quality = "negative_power"
+    attrs = summary_attributes(Window(0, 30 * 24 * HOUR), flagged, [], [], [], None, 15 * MIN)
+    assert attrs["twin_quality"] == "negative_power"
