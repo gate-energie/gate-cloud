@@ -214,3 +214,19 @@ def test_sensor_run_key_follows_the_dashboard_template(tmp_path):
     Path(res["dashboard_file"].path).write_text(REAL_TEMPLATE.read_text() + "\n")
     changed = d.asset_model_inputs_changed(dg.build_sensor_context(cursor=first.run_key, resources=res))
     assert isinstance(changed, dg.RunRequest) and changed.run_key != first.run_key
+
+
+def test_sensor_skips_a_missing_dashboard_template_and_still_triggers(tmp_path):
+    res = resources(tmp_path, circuit_map("heating"))
+    res["dashboard_file"] = d.DashboardFile(path=str(tmp_path / "missing.json"))
+    assert isinstance(d.asset_model_inputs_changed(dg.build_sensor_context(resources=res)), dg.RunRequest)
+
+
+def test_dashboard_template_errors_become_failures(tmp_path):
+    res = dashboard_resources(tmp_path)
+    template = json.loads(REAL_TEMPLATE.read_text())
+    template["configuration"]["entityAliases"]["monitor"]["filter"]["singleEntity"]["id"] = "${UNKNOWN_ID}"
+    Path(res["dashboard_file"].path).write_text(json.dumps(template))
+    with pytest.raises(dg.Failure, match="UNKNOWN_ID"):
+        d.thingsflow_dashboard(res["thingsflow"], res["asset_model_file"], res["dashboard_file"])
+    assert SHARED.dashboard_writes == 0

@@ -25,7 +25,7 @@ import yaml
 
 from gate_cloud.analytics import MINUTE_MS, QUARTER_MS, main_key, measure, read_input, read_power, read_weather
 from gate_cloud.asset_model import CORE_PROFILES, apply_plan, build_plan
-from gate_cloud.dashboard import CircuitSeries, render, unsupported
+from gate_cloud.dashboard import CircuitSeries, TemplateError, render, unsupported
 from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
 from gate_cloud.twin import Window, circuit_metrics, local_day, month_budget, month_window, summary_attributes, weather_day
@@ -190,8 +190,11 @@ def thingsflow_dashboard(
             raise dg.Failure("GATE Weather device not found; materialise weather_observations first")
         branches = [s for s in plan.assets if s.parent is not None and s.profile not in CORE_PROFILES]
         circuits = [CircuitSeries(s.attributes["circuit_key"], s.label or s.name) for s in branches]
-        out = render(template, thingsflow.monitor_device_id, weather.id.id, circuits,
-                     sorted({s.profile for s in branches}))
+        try:
+            out = render(template, thingsflow.monitor_device_id, weather.id.id, circuits,
+                         sorted({s.profile for s in branches}))
+        except TemplateError as error:
+            raise dg.Failure(f"dashboard template: {error}") from error
         problems = unsupported(out)
         if problems:
             raise dg.Failure("dashboard uses what ThingsFlow cannot serve: " + "; ".join(problems))
@@ -230,7 +233,13 @@ def asset_model_inputs_changed(
 ):
     with thingsflow.session() as session:
         circuit_map = thingsflow.circuit_map(session)
-    template = dashboard_file.digest() if dashboard_file.path else ""
+    template = ""
+    if dashboard_file.path:
+        try:
+            template = dashboard_file.digest()
+        except OSError as error:
+            # Keep syncing the asset model; thingsflow_dashboard reports the missing file itself.
+            context.log.warning(f"dashboard template {dashboard_file.path!r} is unreadable ({error}); left out of the digest")
     digest = hashlib.sha256(
         (asset_model_file.digest() + template + json.dumps(circuit_map, sort_keys=True)).encode("utf-8")
     ).hexdigest()
