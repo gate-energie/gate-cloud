@@ -1,12 +1,14 @@
 """Dashboard template rendering. Pure: dicts in, dicts out."""
 import copy
 import json
+import subprocess
+import sys
 import zlib
 from pathlib import Path
 
 import pytest
 
-from gate_cloud.dashboard import PALETTE, CircuitSeries, TemplateError, render, templatize, unsupported
+from gate_cloud.dashboard import PALETTE, CircuitSeries, TemplateError, main, render, templatize, unsupported
 
 TEMPLATE = {
     "title": "GATE — Operación",
@@ -158,3 +160,40 @@ def test_widgets_of_a_state_do_not_overlap_and_nav_headers_are_visible():
     for widget in conf["widgets"].values():
         if widget["typeFullFqn"] == "system.cards.value_card":
             assert widget["config"]["settings"]["showLabel"] is False
+
+
+def test_templatize_requires_the_circuits_datasource():
+    export = rendered()
+    export["configuration"]["widgets"]["w1"]["config"]["datasources"][0]["name"] = "other"
+    with pytest.raises(TemplateError, match="gate:circuits"):
+        templatize(export, "dev-1", "wx-1")
+
+
+def test_templatize_requires_the_circuit_asset_types_alias():
+    export = rendered()
+    export["configuration"]["entityAliases"]["circuits"]["filter"]["assetTypes"] = ["Building"]
+    with pytest.raises(TemplateError, match="assetTypes"):
+        templatize(export, "dev-1", "wx-1")
+
+
+def test_templatize_keeps_only_title_and_configuration():
+    export = {**rendered(), "id": {"id": "d1"}, "tenantId": {"id": "t"}, "createdTime": 1,
+              "assignedCustomers": [{"id": "c"}], "image": "data:...", "mobileHide": True}
+    assert set(templatize(export, "dev-1", "wx-1")) == {"title", "configuration"}
+
+
+def test_templatize_cli_prints_the_template(tmp_path, capsys):
+    export = tmp_path / "export.json"
+    export.write_text(json.dumps({**rendered(), "id": {"id": "d1"}}), encoding="utf-8")
+    main(["templatize", str(export), "dev-1", "wx-1"])
+    assert json.loads(capsys.readouterr().out) == TEMPLATE
+    done = subprocess.run([sys.executable, "-m", "gate_cloud.dashboard", "templatize", str(export), "dev-1", "wx-1"],
+                          capture_output=True, text=True, check=True)
+    assert json.loads(done.stdout) == TEMPLATE
+
+
+def test_widget_with_timeseries_key_type_needs_a_single_entity_alias():
+    bad = copy.deepcopy(rendered())
+    bad["configuration"]["widgets"]["w6"] = {"typeFullFqn": "custom.chart", "type": "timeseries", "config": {"datasources": [
+        {"type": "entity", "entityAliasId": "circuits", "dataKeys": []}]}}
+    assert any("w6" in p for p in unsupported(bad))

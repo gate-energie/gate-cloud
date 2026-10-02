@@ -114,17 +114,29 @@ def render(template: dict, monitor_id: str, weather_id: str,
 def templatize(dashboard: dict, monitor_id: str, weather_id: str) -> dict:
     if not monitor_id or not weather_id:
         raise TemplateError("monitor and weather ids must not be empty")
+    if not isinstance(dashboard.get("configuration"), dict):
+        raise TemplateError("the export has no configuration")
+    found = {"datasource": False, "asset_types": False}
+
     def back(node: Any) -> Any:
         if isinstance(node, str):
             return node.replace(monitor_id, "${MONITOR_DEVICE_ID}").replace(weather_id, "${WEATHER_DEVICE_ID}")
         if isinstance(node, dict):
             if node.get("name") == CIRCUITS_SOURCE and "dataKeys" in node:
                 node = {**node, "dataKeys": POWER_KEYS_PLACEHOLDER}
+                found["datasource"] = True
             if isinstance(node.get("assetTypes"), list) and node["assetTypes"] != BUILDING_TYPES:
                 node = {**node, "assetTypes": ASSET_TYPES_PLACEHOLDER}
+                found["asset_types"] = True
         return node
 
-    return _map(copy.deepcopy(dashboard), back)
+    kept = {key: dashboard[key] for key in ("title", "configuration") if key in dashboard}
+    out = _map(copy.deepcopy(kept), back)
+    if not found["datasource"]:
+        raise TemplateError(f"the export has no datasource named {CIRCUITS_SOURCE!r} with dataKeys")
+    if not found["asset_types"]:
+        raise TemplateError("the export has no circuit assetTypes alias list (other than ['Building'])")
+    return out
 
 
 def unsupported(dashboard: dict) -> list[str]:
@@ -140,7 +152,8 @@ def unsupported(dashboard: dict) -> list[str]:
     for widget_id, widget in config.get("widgets", {}).items():
         kinds = {alias_type.get(ds.get("entityAliasId"))
                  for ds in widget.get("config", {}).get("datasources", [])}
-        if widget.get("typeFullFqn") in TIMESERIES_FQNS and kinds - {"singleEntity"}:
+        timeseries = widget.get("typeFullFqn") in TIMESERIES_FQNS or widget.get("type") == "timeseries"
+        if timeseries and kinds - {"singleEntity"}:
             problems.append(f"widget {widget_id!r}: time-series widget needs a singleEntity alias")
         text = json.dumps(widget.get("config", {}), ensure_ascii=False)
         if "singleEntity" in kinds and ("${entityName}" in text or "${entityLabel}" in text):
