@@ -18,6 +18,7 @@ data:
   THINGSFLOW_URL: {{ .Values.thingsflow.url | quote }}
   GATE_MONITOR_DEVICE_ID: {{ .Values.monitorDeviceId | quote }}
   GATE_ASSET_MODEL_PATH: /etc/gate-cloud/asset_model.yaml
+  GATE_DASHBOARD_PATH: /etc/gate-cloud/dashboard.json
   THINGSFLOW_INGEST_URL: {{ .Values.thingsflow.ingestUrl | quote }}
   GATE_ASSET_HISTORY: {{ .Values.assetHistory | toString | quote }}
 ---
@@ -31,3 +32,5 @@ metadata:
 data:
   asset_model.yaml: |
 {{- default (.Files.Get "files/asset_model.yaml") .Values.assetModel | nindent 4 }}
+  dashboard.json: |
+{{- default (.Files.Get "files/dashboard.json") .Values.dashboard | nindent 4 }}

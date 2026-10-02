@@ -25,6 +25,7 @@ import yaml
 
 from gate_cloud.analytics import MINUTE_MS, QUARTER_MS, main_key, measure, read_input, read_power, read_weather
 from gate_cloud.asset_model import apply_plan, build_plan
+from gate_cloud.dashboard import CircuitSeries, render, unsupported
 from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
 from gate_cloud.twin import Window, circuit_metrics, local_day, month_budget, month_window, summary_attributes, weather_day
@@ -72,6 +73,22 @@ class AssetModelFile(dg.ConfigurableResource):
             return hashlib.sha256(handle.read()).hexdigest()
 
 
+class DashboardFile(dg.ConfigurableResource):
+    """The dashboard template (charts/gate-cloud/files/dashboard.json). Empty path: not configured."""
+
+    path: str = ""
+
+    def load(self) -> dict[str, Any]:
+        if not self.path:
+            raise dg.Failure("GATE_DASHBOARD_PATH is not set")
+        with open(self.path, encoding="utf-8") as handle:
+            return json.load(handle)
+
+    def digest(self) -> str:
+        with open(self.path, "rb") as handle:
+            return hashlib.sha256(handle.read()).hexdigest()
+
+
 @dg.asset(
     group_name="thingsflow",
     description="Building, panel and circuit assets in ThingsFlow, joined from the monitor's circuit_map "
@@ -95,33 +112,6 @@ def thingsflow_asset_model(
             "orphans": report.orphans,
         }
     )
-
-
-sync_asset_model_job = dg.define_asset_job("sync_asset_model", selection=[thingsflow_asset_model])
-
-daily_asset_model_sync = dg.ScheduleDefinition(
-    job=sync_asset_model_job,
-    cron_schedule="0 6 * * *",
-    execution_timezone="America/Toronto",
-    default_status=dg.DefaultScheduleStatus.RUNNING,
-)
-
-
-@dg.sensor(
-    job=sync_asset_model_job, minimum_interval_seconds=120, default_status=dg.DefaultSensorStatus.RUNNING
-)
-def asset_model_inputs_changed(
-    context: dg.SensorEvaluationContext, thingsflow: ThingsFlowResource, asset_model_file: AssetModelFile
-):
-    with thingsflow.session() as session:
-        circuit_map = thingsflow.circuit_map(session)
-    digest = hashlib.sha256(
-        (asset_model_file.digest() + json.dumps(circuit_map, sort_keys=True)).encode("utf-8")
-    ).hexdigest()
-    if digest == context.cursor:
-        return dg.SkipReason("asset model and circuit map unchanged")
-    context.update_cursor(digest)
-    return dg.RunRequest(run_key=digest)
 
 
 class WeatherResource(dg.ConfigurableResource):
@@ -182,6 +172,72 @@ weather_job = dg.define_asset_job("weather", selection=[weather_observations])
 hourly_weather_schedule = dg.build_schedule_from_partitioned_job(
     weather_job, minute_of_hour=10, default_status=dg.DefaultScheduleStatus.RUNNING
 )
+
+
+@dg.asset(
+    group_name="thingsflow",
+    deps=[thingsflow_asset_model, weather_observations],
+    description="The GATE dashboard in ThingsFlow, rendered from the template and the circuits in the asset model.",
+)
+def thingsflow_dashboard(
+    thingsflow: ThingsFlowResource, asset_model_file: AssetModelFile, dashboard_file: DashboardFile
+) -> dg.MaterializeResult:
+    template = dashboard_file.load()
+    with thingsflow.session() as session:
+        plan = build_plan(thingsflow.circuit_map(session), asset_model_file.load())
+        weather = session.devices().get(WEATHER_DEVICE)
+        if weather is None:
+            raise dg.Failure("GATE Weather device not found; materialise weather_observations first")
+        branches = [s for s in plan.assets if s.parent is not None and s.profile not in ("Building", "Electrical Panel")]
+        circuits = [CircuitSeries(s.attributes["circuit_key"], s.label or s.name) for s in branches]
+        out = render(template, thingsflow.monitor_device_id, weather.id.id, circuits,
+                     sorted({s.profile for s in branches}))
+        problems = unsupported(out)
+        if problems:
+            raise dg.Failure("dashboard uses what ThingsFlow cannot serve: " + "; ".join(problems))
+        existing = session.dashboard(out["title"])
+        if existing and existing[1] == out["configuration"]:
+            action, dashboard_id = "unchanged", existing[0]
+        elif existing:
+            action, dashboard_id = "updated", session.save_dashboard(out["title"], out["configuration"], existing[0])
+        else:
+            action, dashboard_id = "created", session.save_dashboard(out["title"], out["configuration"])
+    return dg.MaterializeResult(
+        metadata={"action": action, "dashboard_id": dashboard_id, "circuits": len(circuits)}
+    )
+
+
+sync_asset_model_job = dg.define_asset_job(
+    "sync_asset_model", selection=[thingsflow_asset_model, thingsflow_dashboard]
+)
+
+daily_asset_model_sync = dg.ScheduleDefinition(
+    job=sync_asset_model_job,
+    cron_schedule="0 6 * * *",
+    execution_timezone="America/Toronto",
+    default_status=dg.DefaultScheduleStatus.RUNNING,
+)
+
+
+@dg.sensor(
+    job=sync_asset_model_job, minimum_interval_seconds=120, default_status=dg.DefaultSensorStatus.RUNNING
+)
+def asset_model_inputs_changed(
+    context: dg.SensorEvaluationContext,
+    thingsflow: ThingsFlowResource,
+    asset_model_file: AssetModelFile,
+    dashboard_file: DashboardFile,
+):
+    with thingsflow.session() as session:
+        circuit_map = thingsflow.circuit_map(session)
+    template = dashboard_file.digest() if dashboard_file.path else ""
+    digest = hashlib.sha256(
+        (asset_model_file.digest() + template + json.dumps(circuit_map, sort_keys=True)).encode("utf-8")
+    ).hexdigest()
+    if digest == context.cursor:
+        return dg.SkipReason("asset model, dashboard template and circuit map unchanged")
+    context.update_cursor(digest)
+    return dg.RunRequest(run_key=digest)
 
 
 daily = dg.DailyPartitionsDefinition(start_date=HISTORY_START, timezone=TIMEZONE)
@@ -332,7 +388,7 @@ twin_summary_schedule = dg.ScheduleDefinition(
 
 
 defs = dg.Definitions(
-    assets=[thingsflow_asset_model, weather_observations, circuit_daily_metrics, asset_twin_summary],
+    assets=[thingsflow_asset_model, weather_observations, thingsflow_dashboard, circuit_daily_metrics, asset_twin_summary],
     jobs=[sync_asset_model_job, weather_job, daily_metrics_job, twin_summary_job],
     schedules=[daily_asset_model_sync, hourly_weather_schedule, daily_metrics_schedule, twin_summary_schedule],
     sensors=[asset_model_inputs_changed],
@@ -348,6 +404,8 @@ defs = dg.Definitions(
             asset_history=os.environ.get("GATE_ASSET_HISTORY", "false").lower() == "true",
         ),
         "asset_model_file": AssetModelFile(path=dg.EnvVar("GATE_ASSET_MODEL_PATH")),
+        # Read like THINGSFLOW_INGEST_URL: only thingsflow_dashboard needs it.
+        "dashboard_file": DashboardFile(path=os.environ.get("GATE_DASHBOARD_PATH", "")),
         "weather": WeatherResource(),
     },
 )

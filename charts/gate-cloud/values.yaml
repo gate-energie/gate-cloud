@@ -29,6 +29,10 @@ monitorDeviceId: ""
 # override with --set-file assetModel=path/to/model.yaml for another site.
 assetModel: ""
 
+# The dashboard template. Defaults to files/dashboard.json in this chart;
+# override with --set-file dashboard=path/to/dashboard.json.
+dashboard: ""
+
 networkPolicy:
   enabled: true
   # Open-Meteo (HTTPS). NetworkPolicy cannot match DNS names, so allow 443 to
@@ -58,7 +62,7 @@ dagster:
       - name: gate-cloud
         image:
           repository: ghcr.io/gate-energie/gate-cloud
-          tag: "0.2.2"
+          tag: "0.3.0"
           pullPolicy: IfNotPresent
         dagsterApiGrpcArgs: ["--module-name", "gate_cloud.definitions"]
         port: 3030

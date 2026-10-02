@@ -1,6 +1,7 @@
 """The Dagster wiring: the asset materialises, the sensor fires only on change."""
 import datetime as dt
 import json
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import dagster as dg
@@ -38,6 +39,7 @@ def resources(tmp_path, circuits):
             url="x", username="u", password="p", monitor_device_id="dev-1", ingest_url="http://ingest"
         ),
         "asset_model_file": d.AssetModelFile(path=str(model)),
+        "dashboard_file": d.DashboardFile(path=""),
     }
 
 
@@ -146,3 +148,69 @@ def test_every_schedule_starts_running():
     # 06:00 sync STOPPED and it never ran in prod).
     for schedule in d.defs.schedules:
         assert schedule.default_status == dg.DefaultScheduleStatus.RUNNING, schedule.name
+
+
+REAL_TEMPLATE = Path(__file__).parent.parent / "charts" / "gate-cloud" / "files" / "dashboard.json"
+
+
+def dashboard_resources(tmp_path):
+    res = weather_resources(tmp_path)
+    template = tmp_path / "dashboard.json"
+    template.write_text(REAL_TEMPLATE.read_text())
+    res["dashboard_file"] = d.DashboardFile(path=str(template))
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    SHARED.ensure_device(d.WEATHER_DEVICE, "weather", "Weather")
+    return res
+
+
+def _action(result):
+    return result.asset_materializations_for_node("thingsflow_dashboard")[0].metadata["action"].value
+
+
+def test_dashboard_is_created_then_left_alone_then_updated(tmp_path):
+    res = dashboard_resources(tmp_path)
+    first = dg.materialize([d.thingsflow_dashboard], resources=res)
+    assert first.success and _action(first) == "created"
+    assert SHARED.dashboard_writes == 1
+    dashboard_id, _ = SHARED.dashboard("GATE \u2014 Operaci\u00f3n")
+
+    second = dg.materialize([d.thingsflow_dashboard], resources=res)
+    assert _action(second) == "unchanged" and SHARED.dashboard_writes == 1
+
+    template = json.loads(REAL_TEMPLATE.read_text())
+    template["configuration"]["settings"] = {**template["configuration"].get("settings", {}), "gateEdit": True}
+    Path(res["dashboard_file"].path).write_text(json.dumps(template))
+    third = dg.materialize([d.thingsflow_dashboard], resources=res)
+    assert _action(third) == "updated" and SHARED.dashboard_writes == 2
+    assert SHARED.dashboard("GATE \u2014 Operaci\u00f3n")[0] == dashboard_id
+
+
+def test_dashboard_needs_the_weather_device(tmp_path):
+    res = dashboard_resources(tmp_path)
+    SHARED.devices_by_name.pop(d.WEATHER_DEVICE)
+    with pytest.raises(dg.Failure, match="weather_observations"):
+        d.thingsflow_dashboard(res["thingsflow"], res["asset_model_file"], res["dashboard_file"])
+    assert SHARED.dashboard_writes == 0
+
+
+def test_dashboard_needs_its_path(tmp_path):
+    res = dashboard_resources(tmp_path)
+    res["dashboard_file"] = d.DashboardFile(path="")
+    with pytest.raises(dg.Failure, match="GATE_DASHBOARD_PATH is not set"):
+        d.thingsflow_dashboard(res["thingsflow"], res["asset_model_file"], res["dashboard_file"])
+
+
+def test_asset_model_sync_works_without_the_dashboard_path(tmp_path):
+    res = resources(tmp_path, circuit_map("heating"))
+    assert dg.materialize([d.thingsflow_asset_model], resources=res).success
+    assert isinstance(d.asset_model_inputs_changed(dg.build_sensor_context(resources=res)), dg.RunRequest)
+
+
+def test_sensor_run_key_follows_the_dashboard_template(tmp_path):
+    res = dashboard_resources(tmp_path)
+    first = d.asset_model_inputs_changed(dg.build_sensor_context(resources=res))
+    same = d.asset_model_inputs_changed(dg.build_sensor_context(resources=res))
+    assert first.run_key == same.run_key
+    Path(res["dashboard_file"].path).write_text(REAL_TEMPLATE.read_text() + "\n")
+    changed = d.asset_model_inputs_changed(dg.build_sensor_context(cursor=first.run_key, resources=res))
+    assert isinstance(changed, dg.RunRequest) and changed.run_key != first.run_key

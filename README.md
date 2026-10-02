@@ -29,6 +29,7 @@ there.
 | asset `thingsflow_asset_model` | Creates/updates asset profiles, the Building, the Panel and one asset per circuit, with "Contains" relations down to the monitor device | on change, and daily |
 | sensor `asset_model_inputs_changed` | Hashes the asset model file and the monitor's `circuit_map`; requests a run when either changes. On from deployment | every 2 min |
 | schedule `daily_asset_model_sync` | Re-applies the model, restoring anything edited by hand | 06:00 America/Toronto |
+| asset `thingsflow_dashboard` | Renders the dashboard template with the circuits of the asset model and the weather device, and creates or updates `GATE — Operación` in ThingsFlow (no write when unchanged). Needs `weather_observations` to have run once | with the sync (on change, and daily) |
 | asset `weather_observations` | Hourly Open-Meteo weather at the building, ingested into the `GATE Weather` device | hourly, :10 |
 | asset `circuit_daily_metrics` | Per-circuit and building metrics for one local day (energy from the annual counter, cost at the building's Rate D, utilisation, coverage, degree days) | daily 01:30, backfillable |
 | asset `asset_twin_summary` | 30-day summary per circuit as `twin_*` attributes (energy, cost, fraction, correlation with temperature and humidity, overload against `rated_power_w`). Unknown values are not written; `twin_unknown` lists them, so a value left from an earlier window is not mistaken for a current one | daily 01:45 |
@@ -56,7 +57,15 @@ Environment, set by the chart:
 | `GATE_MONITOR_DEVICE_ID` | ThingsFlow id of the Refoss device |
 | `GATE_ASSET_MODEL_PATH` | path of the mounted asset model |
 | `THINGSFLOW_INGEST_URL` | ThingsFlow HTTP ingest gateway, in-cluster by default; required by `weather_observations` only |
+| `GATE_DASHBOARD_PATH` | path of the mounted dashboard template; required by `thingsflow_dashboard` only |
 | `GATE_ASSET_HISTORY` | `true` writes `circuit_daily_metrics` to assets as telemetry; default `false` |
+
+### Changing the dashboard
+
+Edit the dashboard in the ThingsFlow UI, then export it as JSON. Turn the
+export back into the template with
+`uv run python -m gate_cloud.dashboard templatize export.json <monitor-id> <weather-id> > charts/gate-cloud/files/dashboard.json`
+and commit it. UI edits are otherwise overwritten by the next sync.
 
 ThingsFlow has no API keys, so GATE uses a dedicated tenant-admin user. Create
 it in ThingsFlow and store its credentials in the Secret named by
