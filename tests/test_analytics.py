@@ -1,5 +1,6 @@
 """Daily metrics and the 30-day summary, end to end against the fake."""
 import datetime as dt
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import dagster as dg
@@ -237,3 +238,38 @@ def test_summary_month_budget_mid_month(tmp_path):
     assert b["month_projected_cost_cad"] == round(cost * 31, 2)
     # the test model has no monthly_budget, so the percentage is unknown
     assert "month_budget_used_pct" in b["month_unknown"].split(",")
+
+
+def _month_series(power_w=None, counter=(1048.0, 1060.0)):
+    day = local_day(dt.date(2026, 10, 1))
+    SHARED.series[("dev-1", "main_total_energy_in_kwh")] = [(day.start_ms - MIN, counter[0]), (day.end_ms - MIN, counter[1])]
+    if power_w is not None:
+        SHARED.series[("dev-1", "main_total_active_power")] = [(t, power_w) for t in range(day.start_ms, day.end_ms, MIN)]
+
+
+MONTH_CONFIG = {"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-02"}}}}
+
+
+def test_flagged_negative_main_aggregate_leaves_the_month_unknown(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    _month_series(power_w=-500.0, counter=(1060.0, 1048.0))  # counter went backwards, power is negative
+    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    b = SHARED.attrs["asset-B"]
+    assert not {"month_energy_kwh", "month_cost_cad", "month_projected_cost_cad", "month_energy_source"} & set(b)
+    assert set(b["month_unknown"].split(",")) == {"month_energy_kwh", "month_cost_cad",
+                                                  "month_budget_used_pct", "month_projected_cost_cad"}
+
+
+def test_month_budget_percentage_end_to_end(tmp_path):
+    res = weather_resources(tmp_path)
+    model = Path(res["asset_model_file"].path)
+    model.write_text(model.read_text().replace("longitude: -72.58", 'longitude: -72.58, monthly_budget: "150"'))
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    _month_series()
+    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    b = SHARED.attrs["asset-B"]
+    cost = RateD().cost(12.0, days=1, apply_fixed_charge=True)["total"]
+    assert b["month_cost_cad"] == cost
+    assert b["month_budget_used_pct"] == round(100 * cost / 150, 1)
+    assert b["month_energy_source"] == "counter"

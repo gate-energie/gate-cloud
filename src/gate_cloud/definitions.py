@@ -24,7 +24,7 @@ import dagster as dg
 import yaml
 
 from gate_cloud.analytics import MINUTE_MS, QUARTER_MS, main_key, measure, read_input, read_power, read_weather
-from gate_cloud.asset_model import apply_plan, build_plan
+from gate_cloud.asset_model import CORE_PROFILES, apply_plan, build_plan
 from gate_cloud.dashboard import CircuitSeries, render, unsupported
 from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
@@ -188,7 +188,7 @@ def thingsflow_dashboard(
         weather = session.devices().get(WEATHER_DEVICE)
         if weather is None:
             raise dg.Failure("GATE Weather device not found; materialise weather_observations first")
-        branches = [s for s in plan.assets if s.parent is not None and s.profile not in ("Building", "Electrical Panel")]
+        branches = [s for s in plan.assets if s.parent is not None and s.profile not in CORE_PROFILES]
         circuits = [CircuitSeries(s.attributes["circuit_key"], s.label or s.name) for s in branches]
         out = render(template, thingsflow.monitor_device_id, weather.id.id, circuits,
                      sorted({s.profile for s in branches}))
@@ -355,14 +355,20 @@ def asset_twin_summary(
             attrs["twin_updated_at"] = now_ms
             session.save_attributes(entity_ref("ASSET", c.asset_id), "SERVER_SCOPE", _known(attrs))
         month = month_window(end_day)
-        energy = None
+        energy, energy_source = None, None
         if month is not None:
             m = circuit_metrics(month, MINUTE_MS, read_input(session, monitor, main_key(plan), month))
-            energy = m.energy_kwh if m is not None else None
+            # A flagged or negative aggregate is not a usable month: leave it unknown.
+            if m is not None and m.quality is None and m.energy_kwh >= 0:
+                energy, energy_source = m.energy_kwh, m.energy_source
         elapsed = 0 if month is None else (end_day - end_day.replace(day=1)).days
         days_in_month = calendar.monthrange(end_day.year, end_day.month)[1]
         building_attrs = (model.get("building") or {}).get("attributes") or {}
-        budget = month_budget(energy, elapsed, days_in_month, rate, building_attrs.get("monthly_budget"))
+        monthly_budget = building_attrs.get("monthly_budget")
+        monthly_budget = float(monthly_budget) if monthly_budget is not None else None
+        budget = month_budget(energy, elapsed, days_in_month, rate, monthly_budget)
+        if energy_source is not None and budget["month_energy_kwh"] is not None:
+            budget["month_energy_source"] = energy_source
         budget["month_updated_at"] = now_ms
         building = session.assets().get(model["building"]["name"])
         if building is not None:
