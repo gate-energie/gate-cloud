@@ -10,7 +10,9 @@ def ref(entity_type: str, entity_id: str) -> SimpleNamespace:
     return SimpleNamespace(entity_type=entity_type, id=entity_id)
 
 
-def circuit_map(*branches: str, mains: tuple[str, ...] = ("main_phase_1",)) -> list[dict[str, Any]]:
+def circuit_map(
+    *branches: str, mains: tuple[str, ...] = ("main_phase_1",), aggregate: str = "main_total"
+) -> list[dict[str, Any]]:
     """Rows shaped like the edge's sync_attributes.py circuit_map."""
     rows = [{"name": name, "kind": "main_phase", "location": "service"} for name in mains]
     rows += [
@@ -18,7 +20,7 @@ def circuit_map(*branches: str, mains: tuple[str, ...] = ("main_phase_1",)) -> l
          "location": "general", "power_multiplier": 1.0}
         for i, name in enumerate(branches, start=2)
     ]
-    rows.append({"name": "main_total", "kind": "main_aggregate", "location": "service"})
+    rows.append({"name": aggregate, "kind": "main_aggregate", "location": "service"})
     return rows
 
 

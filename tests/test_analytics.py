@@ -193,3 +193,14 @@ def test_circuit_without_an_asset_is_skipped_and_reported(tmp_path):
     meta = summary.asset_materializations_for_node("asset_twin_summary")[0].metadata
     assert meta["missing_assets"].value == ["heating"]
     assert "twin_energy_kwh" not in SHARED.attrs["asset-heating"]
+
+
+def test_building_aggregate_key_comes_from_the_circuit_map(tmp_path):
+    res = weather_resources(tmp_path)
+    SHARED.device_attributes["circuit_map"] = circuit_map("heating", aggregate="main_sum")
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed(with_main=False)
+    SHARED.series[("dev-1", "main_sum_energy_in_kwh")] = [(DAY.start_ms - MIN, 1000.0), (DAY.end_ms - MIN, 1048.0)]
+    result = dg.materialize([d.circuit_daily_metrics], partition_key="2026-09-30", resources=res)
+    meta = result.asset_materializations_for_node("circuit_daily_metrics")[0].metadata
+    assert meta["building_energy_kwh"].value == 48.0

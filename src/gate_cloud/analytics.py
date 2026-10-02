@@ -11,7 +11,7 @@ from gate_cloud.asset_model import Plan
 from gate_cloud.tariff import RateD
 from gate_cloud.twin import CircuitInput, CircuitMetrics, Series, Window, allocate, circuit_metrics
 
-MAIN = "main_total"
+MAIN = "main_total"  # used only when the plan's Panel has no circuit_key
 MINUTE_MS = 60_000  # metric buckets: "on" means a minute averaging over 10 W
 QUARTER_MS = 900_000  # correlation buckets, paired with hourly weather
 HOUR_MS = 3_600_000
@@ -49,6 +49,15 @@ def circuits(session, plan: Plan) -> tuple[list[Circuit], list[str]]:
         found.append(Circuit(spec.name, spec.attributes["circuit_key"], ids[spec.name],
                              spec.attributes.get("rated_power_w")))
     return found, missing
+
+
+def main_key(plan: Plan) -> str:
+    """The building aggregate's key prefix: the Panel's circuit_key, set by
+    build_plan from the circuit_map main_aggregate row."""
+    for spec in plan.assets:
+        if spec.profile == "Electrical Panel" and spec.attributes.get("circuit_key"):
+            return spec.attributes["circuit_key"]
+    return MAIN
 
 
 def read_power(session, device, key: str, window: Window, bucket_ms: int) -> Series:
@@ -92,6 +101,6 @@ def measure(session, monitor, plan: Plan, rate: RateD, window: Window, days: int
             result.no_data.append(c.name)
         else:
             result.circuits[c.name] = m
-    main = circuit_metrics(window, MINUTE_MS, read_input(session, monitor, MAIN, window))
+    main = circuit_metrics(window, MINUTE_MS, read_input(session, monitor, main_key(plan), window))
     result.building = allocate(result.circuits, main, rate, days) or {}
     return result
