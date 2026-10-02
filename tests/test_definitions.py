@@ -1,8 +1,11 @@
 """The Dagster wiring: the asset materialises, the sensor fires only on change."""
 import datetime as dt
 import json
+from zoneinfo import ZoneInfo
 
 import dagster as dg
+import pytest
+import yaml
 
 from gate_cloud import definitions as d
 from gate_cloud.weather import OpenMeteo
@@ -31,7 +34,9 @@ def resources(tmp_path, circuits):
     model.write_text(MODEL_YAML)
     SHARED.__init__(device_attributes={"circuit_map": circuits})
     return {
-        "thingsflow": FakeThingsFlowResource(url="x", username="u", password="p", monitor_device_id="dev-1", ingest_url="http://ingest"),
+        "thingsflow": FakeThingsFlowResource(
+            url="x", username="u", password="p", monitor_device_id="dev-1", ingest_url="http://ingest"
+        ),
         "asset_model_file": d.AssetModelFile(path=str(model)),
     }
 
@@ -99,5 +104,21 @@ def test_weather_partition_ingests_one_point_per_hour_to_the_weather_device(tmp_
     result = dg.materialize([d.weather_observations], partition_key="2026-09-30-10:00", resources=res)
     assert result.success
     url, jwt, points = SHARED.ingested[-1]
+    assert url == "http://ingest"
     assert jwt == "jwt-device-GATE Weather" and len(points) == 1
+    start = dt.datetime(2026, 9, 30, 10, tzinfo=ZoneInfo("America/Toronto"))
+    assert points[0]["ts"] == int(start.timestamp() * 1000)
     assert ("asset-B", "device-GATE Weather", "Contains") in SHARED.relations
+
+
+def test_weather_fails_clearly_without_building_in_thingsflow(tmp_path):
+    res = weather_resources(tmp_path)  # the asset-model sync has not run
+    context = dg.build_asset_context(partition_key="2026-09-30-10:00")
+    with pytest.raises(dg.Failure, match="materialise thingsflow_asset_model first"):
+        d.weather_observations(context, res["thingsflow"], res["asset_model_file"], res["weather"])
+
+
+def test_site_requires_latitude_and_longitude():
+    assert d.site(yaml.safe_load(MODEL_WITH_SITE)) == (46.35, -72.58)
+    with pytest.raises(dg.Failure, match="needs latitude and longitude"):
+        d.site(yaml.safe_load(MODEL_YAML))

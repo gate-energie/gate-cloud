@@ -16,6 +16,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+from zoneinfo import ZoneInfo
 from typing import Any
 
 import dagster as dg
@@ -130,6 +131,8 @@ class WeatherResource(dg.ConfigurableResource):
 
 def site(asset_model: dict[str, Any]) -> tuple[float, float]:
     attributes = (asset_model.get("building") or {}).get("attributes") or {}
+    if "latitude" not in attributes or "longitude" not in attributes:
+        raise dg.Failure("asset model building.attributes needs latitude and longitude")
     return float(attributes["latitude"]), float(attributes["longitude"])
 
 
@@ -149,10 +152,16 @@ def weather_observations(
     model = asset_model_file.load()
     latitude, longitude = site(model)
     window = context.partition_time_window
-    points = weather.client().hourly(latitude, longitude, window.start, window.end, dt.date.today())
+    today = dt.datetime.now(ZoneInfo(TIMEZONE)).date()
+    points = weather.client().hourly(latitude, longitude, window.start, window.end, today)
     with thingsflow.session() as session:
         device_id = session.ensure_device(WEATHER_DEVICE, "weather", "Weather")
-        building = session.assets()[model["building"]["name"]]
+        name = model["building"]["name"]
+        building = session.assets().get(name)
+        if building is None:
+            raise dg.Failure(
+                f"building {name!r} is not in ThingsFlow yet; materialise thingsflow_asset_model first"
+            )
         session.save_relation(entity_ref("ASSET", building.id.id), entity_ref("DEVICE", device_id), "Contains")
         if points:
             session.ingest(thingsflow.ingest_url, session.device_jwt(device_id), points)
@@ -162,7 +171,7 @@ def weather_observations(
     return dg.MaterializeResult(metadata={"hours": len(points), "expected_hours": expected})
 
 
-weather_job = dg.define_asset_job("weather", selection=[weather_observations], partitions_def=hourly)
+weather_job = dg.define_asset_job("weather", selection=[weather_observations])
 hourly_weather_schedule = dg.build_schedule_from_partitioned_job(
     weather_job, minute_of_hour=10, default_status=dg.DefaultScheduleStatus.RUNNING
 )
