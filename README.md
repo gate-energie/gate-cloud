@@ -88,6 +88,12 @@ helm upgrade --install gate-cloud charts/gate-cloud -n gate \
   --set monitorDeviceId=<device-id>
 ```
 
+After the first install, backfill `weather_observations` from `HISTORY_START`
+(`src/gate_cloud/definitions.py`) to now in the UI; its single-run backfill
+policy fetches the whole range in one run. Then backfill
+`circuit_daily_metrics` over the same days. `asset_twin_summary` needs no
+backfill: it runs nightly by itself over the last 30 days.
+
 The chart wraps the official Dagster chart (webserver, daemon, Postgres for run
 history, K8sRunLauncher) and adds the asset model ConfigMap and a NetworkPolicy
 that lets the user-code and run pods reach flow-core, the HTTP ingest gateway and

@@ -10,5 +10,9 @@ it in the UI (Automation -> Sensors) to pause the sync.
 Schedules, all on by default: `weather_observations` hourly at :10,
 `circuit_daily_metrics` daily at 01:30 and `asset_twin_summary` daily at 01:45.
 
+After the first install, backfill `weather_observations` from HISTORY_START
+(one run: single-run backfill), then `circuit_daily_metrics` over the same
+days. `asset_twin_summary` runs nightly by itself and needs no backfill.
+
 The Secret {{ .Values.thingsflow.existingSecret }} must hold THINGSFLOW_USERNAME
 and THINGSFLOW_PASSWORD for the GATE tenant-admin account.
