@@ -9,10 +9,11 @@ from typing import Any
 
 from gate_cloud.asset_model import Plan
 from gate_cloud.tariff import RateD
-from gate_cloud.thingsflow import entity_ref
-from gate_cloud.twin import CircuitInput, CircuitMetrics, Series, Window, allocate, circuit_metrics, summary_attributes, weather_day
+from gate_cloud.twin import CircuitInput, CircuitMetrics, Series, Window, allocate, circuit_metrics
 
 MAIN = "main_total"
+MINUTE_MS = 60_000  # metric buckets: "on" means a minute averaging over 10 W
+QUARTER_MS = 900_000  # correlation buckets, paired with hourly weather
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class Circuit:
 
 @dataclass
 class DailyResult:
+    found: list[Circuit] = field(default_factory=list)
     circuits: dict[str, CircuitMetrics] = field(default_factory=dict)
     building: dict[str, Any] = field(default_factory=dict)
     no_data: list[str] = field(default_factory=list)
@@ -39,8 +41,13 @@ def circuits(session, plan: Plan) -> list[Circuit]:
     ]
 
 
-def read_input(session, device, key: str, window: Window, bucket_ms: int) -> CircuitInput:
+def read_power(session, device, key: str, window: Window, bucket_ms: int) -> Series:
+    """Bucket averages of `<key>_active_power`, epoch-aligned."""
     power = session.timeseries(device, [f"{key}_active_power"], window.start_ms, window.end_ms, bucket_ms, "AVG")
+    return power.get(f"{key}_active_power") or []
+
+
+def read_input(session, device, key: str, window: Window) -> CircuitInput:
     # flow-core buckets on the epoch, not on start: a window-long MAX read
     # spans two buckets for a local day, so take the max of all of them.
     peak = session.timeseries(device, [f"{key}_active_power"], window.start_ms, window.end_ms,
@@ -48,7 +55,7 @@ def read_input(session, device, key: str, window: Window, bucket_ms: int) -> Cir
     peaks = peak.get(f"{key}_active_power") or []
     counter = f"{key}_energy_in_kwh"
     return CircuitInput(
-        power=power.get(f"{key}_active_power") or [],
+        power=read_power(session, device, key, window, MINUTE_MS),
         max_power_w=max((v for _, v in peaks), default=None),
         counter_start=session.last_value(device, counter, window.start_ms),
         counter_end=session.last_value(device, counter, window.end_ms),
@@ -62,17 +69,15 @@ def read_weather(session, weather_device, window: Window) -> tuple[Series, Serie
     return raw.get("temperature_c") or [], raw.get("humidity_pct") or []
 
 
-def measure(session, monitor, plan: Plan, rate: RateD, window: Window, bucket_ms: int, days: int):
-    found = circuits(session, plan)
-    result = DailyResult()
-    inputs: dict[str, CircuitInput] = {}
-    for c in found:
-        inputs[c.name] = read_input(session, monitor, c.key, window, bucket_ms)
-        m = circuit_metrics(window, bucket_ms, inputs[c.name])
+def measure(session, monitor, plan: Plan, rate: RateD, window: Window, days: int) -> DailyResult:
+    """Metrics of every circuit and the building over `window`, on 1-minute buckets."""
+    result = DailyResult(found=circuits(session, plan))
+    for c in result.found:
+        m = circuit_metrics(window, MINUTE_MS, read_input(session, monitor, c.key, window))
         if m is None:
             result.no_data.append(c.name)
         else:
             result.circuits[c.name] = m
-    main = circuit_metrics(window, bucket_ms, read_input(session, monitor, MAIN, window, bucket_ms))
+    main = circuit_metrics(window, MINUTE_MS, read_input(session, monitor, MAIN, window))
     result.building = allocate(result.circuits, main, rate, days) or {}
-    return found, inputs, result
+    return result

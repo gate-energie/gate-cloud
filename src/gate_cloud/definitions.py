@@ -22,7 +22,7 @@ from typing import Any
 import dagster as dg
 import yaml
 
-from gate_cloud.analytics import measure, read_weather
+from gate_cloud.analytics import QUARTER_MS, measure, read_power, read_weather
 from gate_cloud.asset_model import apply_plan, build_plan
 from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
@@ -181,7 +181,6 @@ hourly_weather_schedule = dg.build_schedule_from_partitioned_job(
 
 
 daily = dg.DailyPartitionsDefinition(start_date=HISTORY_START, timezone=TIMEZONE)
-MINUTE_MS, QUARTER_MS = 60_000, 900_000
 SUMMARY_DAYS = 30
 
 
@@ -206,11 +205,11 @@ def circuit_daily_metrics(
     window = local_day(dt.date.fromisoformat(context.partition_key))
     with thingsflow.session() as session:
         plan, rate, monitor, weather_device = _context(session, thingsflow, model)
-        found, _, result = measure(session, monitor, plan, rate, window, MINUTE_MS, days=1)
+        result = measure(session, monitor, plan, rate, window, days=1)
         temperature, humidity = read_weather(session, weather_device, window)
         building = {**result.building, **weather_day(temperature, humidity, window)}
         if thingsflow.asset_history:
-            ids = {c.name: c.asset_id for c in found}
+            ids = {c.name: c.asset_id for c in result.found}
             for name, m in result.circuits.items():
                 values = {k: v for k, v in m.as_values().items() if v is not None}
                 session.save_timeseries(entity_ref("ASSET", ids[name]), {"ts": window.start_ms, "values": values})
@@ -262,13 +261,15 @@ def asset_twin_summary(
     now_ms = int(dt.datetime.now(dt.timezone.utc).timestamp() * 1000)
     with thingsflow.session() as session:
         plan, rate, monitor, weather_device = _context(session, thingsflow, model)
-        found, inputs, result = measure(session, monitor, plan, rate, window, QUARTER_MS, days=SUMMARY_DAYS)
+        result = measure(session, monitor, plan, rate, window, days=SUMMARY_DAYS)
         temperature, humidity = read_weather(session, weather_device, window)
-        for c in found:
+        for c in result.found:
             m = result.circuits.get(c.name)
             if m is None:
                 continue
-            attrs = summary_attributes(window, m, inputs[c.name].power, temperature, humidity, c.rated_power_w, QUARTER_MS)
+            # Metrics come from 1-minute buckets; only the weather pairing uses quarter hours.
+            power = read_power(session, monitor, c.key, window, QUARTER_MS)
+            attrs = summary_attributes(window, m, power, temperature, humidity, c.rated_power_w, QUARTER_MS)
             attrs["twin_updated_at"] = now_ms
             session.save_attributes(entity_ref("ASSET", c.asset_id), "SERVER_SCOPE", attrs)
     return dg.MaterializeResult(metadata={
