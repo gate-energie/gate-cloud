@@ -15,6 +15,8 @@ import datetime as dt
 from dataclasses import asdict, dataclass
 from zoneinfo import ZoneInfo
 
+from gate_cloud.tariff import RateD
+
 Series = list[tuple[int, float]]
 
 ON_THRESHOLD_W = 10.0  # the legacy backend's "on" threshold
@@ -53,8 +55,8 @@ class CircuitMetrics:
     energy_source: str
     avg_power_w: float | None
     max_power_w: float | None
-    on_hours: float
-    utilization_pct: float
+    on_hours: float | None
+    utilization_pct: float | None
     coverage_pct: float
     energy_fraction_pct: float | None = None
     cost_cad: float | None = None
@@ -84,7 +86,102 @@ def circuit_metrics(window: Window, bucket_ms: int, data: CircuitInput) -> Circu
         energy_source=source,
         avg_power_w=round(sum(buckets) / len(buckets), 1) if buckets else None,
         max_power_w=data.max_power_w,
-        on_hours=round(on * bucket_hours, 2),
-        utilization_pct=round(100 * on / window_buckets, 1),
+        on_hours=round(on * bucket_hours, 2) if buckets else None,
+        utilization_pct=round(100 * on / window_buckets, 1) if buckets else None,
         coverage_pct=round(100 * len(buckets) / window_buckets, 1),
     )
+
+
+DEGREE_DAY_BASE_C = 18.0
+CORRELATION_MIN_DAYS = 2
+OVERLOAD_FACTOR = 1.1
+
+
+def allocate(circuits: dict[str, CircuitMetrics], main: CircuitMetrics | None, rate: RateD, days: int) -> dict | None:
+    """Fraction and cost per circuit against the building aggregate.
+
+    Rate D's tier-1 threshold belongs to the building, so the bill is computed
+    on main_total and each circuit pays the building's effective energy rate
+    (taxes included). The fixed charge stays on the building.
+    """
+    if main is None or main.energy_kwh <= 0:
+        return None
+    bill = rate.cost(main.energy_kwh, days=days, apply_fixed_charge=True)
+    energy_rate = bill["energy_cost"] * (1 + rate.tax_rate) / main.energy_kwh
+    for m in circuits.values():
+        m.energy_fraction_pct = round(100 * m.energy_kwh / main.energy_kwh, 2)
+        m.cost_cad = round(m.energy_kwh * energy_rate, 2)
+    return {"energy_kwh": main.energy_kwh, "cost_cad": bill["total"], "peak_power_w": main.max_power_w}
+
+
+def _mean(values: list[float]) -> float | None:
+    return round(sum(values) / len(values), 2) if values else None
+
+
+def weather_day(temperature: Series, humidity: Series, window: Window) -> dict:
+    temps = [v for ts, v in temperature if window.start_ms <= ts < window.end_ms]
+    hums = [v for ts, v in humidity if window.start_ms <= ts < window.end_ms]
+    mean = _mean(temps)
+    return {
+        "temp_mean_c": mean,
+        "temp_min_c": min(temps) if temps else None,
+        "temp_max_c": max(temps) if temps else None,
+        "humidity_mean_pct": _mean(hums),
+        "hdd": None if mean is None else round(max(0.0, DEGREE_DAY_BASE_C - mean), 2),
+        "cdd": None if mean is None else round(max(0.0, mean - DEGREE_DAY_BASE_C), 2),
+    }
+
+
+def pearson(pairs: list[tuple[float, float]], min_pairs: int) -> float | None:
+    """Pearson r, or None when it cannot be known (too few pairs, a constant series)."""
+    n = len(pairs)
+    if n < min_pairs:
+        return None
+    mx = sum(x for x, _ in pairs) / n
+    my = sum(y for _, y in pairs) / n
+    sxx = sum((x - mx) ** 2 for x, _ in pairs)
+    syy = sum((y - my) ** 2 for _, y in pairs)
+    if sxx == 0 or syy == 0:
+        return None
+    sxy = sum((x - mx) * (y - my) for x, y in pairs)
+    return round(sxy / (sxx * syy) ** 0.5, 2)
+
+
+def align_hourly(power: Series, weather: Series) -> list[tuple[float, float]]:
+    """Pair each power bucket with the weather observation of its hour."""
+    by_hour = {ts // 3_600_000: v for ts, v in weather}
+    return [(w, by_hour[ts // 3_600_000]) for ts, w in power if ts // 3_600_000 in by_hour]
+
+
+def summary_attributes(
+    window: Window,
+    m: CircuitMetrics,
+    power: Series,
+    temperature: Series,
+    humidity: Series,
+    rated_power_w: float | None,
+    bucket_ms: int,
+) -> dict:
+    """The twin_* SERVER_SCOPE attributes of one circuit for one window."""
+    min_pairs = CORRELATION_MIN_DAYS * 86_400_000 // bucket_ms
+    overload = None
+    health = None
+    if rated_power_w and m.max_power_w is not None:
+        overload = m.max_power_w > rated_power_w * OVERLOAD_FACTOR
+        health = 70.0 if overload else 100.0
+    return {
+        "twin_energy_kwh": m.energy_kwh,
+        "twin_energy_source": m.energy_source,
+        "twin_cost_cad": m.cost_cad,
+        "twin_avg_power_w": m.avg_power_w,
+        "twin_max_power_w": m.max_power_w,
+        "twin_utilization_pct": m.utilization_pct,
+        "twin_coverage_pct": m.coverage_pct,
+        "twin_energy_fraction_pct": m.energy_fraction_pct,
+        "twin_corr_temperature": pearson(align_hourly(power, temperature), min_pairs),
+        "twin_corr_humidity": pearson(align_hourly(power, humidity), min_pairs),
+        "twin_health_score": health,
+        "twin_overload": overload,
+        "twin_window_start": window.start_ms,
+        "twin_window_end": window.end_ms,
+    }

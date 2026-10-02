@@ -3,9 +3,26 @@ import datetime as dt
 
 import pytest
 
-from gate_cloud.twin import CircuitInput, Window, circuit_metrics, local_day
+from gate_cloud.tariff import RateD
+from gate_cloud.twin import (
+    CircuitInput,
+    CircuitMetrics,
+    Window,
+    align_hourly,
+    allocate,
+    circuit_metrics,
+    local_day,
+    pearson,
+    summary_attributes,
+    weather_day,
+)
 
 MIN = 60_000
+HOUR = 3_600_000
+
+
+def metrics(kwh, max_w=1000.0):
+    return CircuitMetrics(kwh, "counter", 100.0, max_w, 1.0, 10.0, 100.0)
 
 
 def flat(window, watts, bucket=MIN):
@@ -54,3 +71,69 @@ def test_gaps_lower_coverage_not_power():
 def test_no_data_at_all_is_none():
     day = local_day(dt.date(2026, 10, 1))
     assert circuit_metrics(day, MIN, CircuitInput([], None, None, None)) is None
+
+
+def test_counter_only_day_has_unknown_utilization():
+    day = local_day(dt.date(2026, 10, 1))
+    m = circuit_metrics(day, MIN, CircuitInput([], None, 10.0, 12.0))
+    assert m.energy_kwh == 2.0 and m.energy_source == "counter"
+    assert m.on_hours is None and m.utilization_pct is None and m.coverage_pct == 0.0
+
+
+def test_cost_is_allocated_at_the_building_effective_energy_rate():
+    circuits = {"heating": metrics(30.0), "lights": metrics(10.0)}
+    building = allocate(circuits, metrics(50.0, max_w=8000.0), RateD(), days=1)
+    day = RateD().cost(50.0, days=1, apply_fixed_charge=True)
+    assert building == {"energy_kwh": 50.0, "cost_cad": day["total"], "peak_power_w": 8000.0}
+    energy_with_tax = day["energy_cost"] * (1 + RateD().tax_rate)
+    assert circuits["heating"].cost_cad == round(30.0 * energy_with_tax / 50.0, 2)
+    assert circuits["heating"].energy_fraction_pct == 60.0
+
+
+def test_without_main_total_fraction_and_cost_are_unknown():
+    circuits = {"heating": metrics(30.0)}
+    assert allocate(circuits, None, RateD(), days=1) is None
+    assert circuits["heating"].cost_cad is None and circuits["heating"].energy_fraction_pct is None
+
+
+def test_weather_day_degree_days():
+    day = local_day(dt.date(2026, 1, 15))
+    temps = [(day.start_ms + h * HOUR, -10.0 if h < 12 else 0.0) for h in range(24)]
+    hums = [(day.start_ms + h * HOUR, 80.0) for h in range(24)]
+    w = weather_day(temps, hums, day)
+    assert w == {"temp_mean_c": -5.0, "temp_min_c": -10.0, "temp_max_c": 0.0,
+                 "humidity_mean_pct": 80.0, "hdd": 23.0, "cdd": 0.0}
+
+
+def test_weather_day_without_points_is_all_none():
+    assert set(weather_day([], [], local_day(dt.date(2026, 1, 15))).values()) == {None}
+
+
+def test_pearson_is_none_when_unknowable():
+    assert pearson([(1.0, 2.0)] * 500, min_pairs=192) is None  # zero variance
+    assert pearson([(1.0, 1.0), (2.0, 2.0)], min_pairs=192) is None  # too few
+    pairs = [(float(i), 2.0 * i + 1) for i in range(200)]
+    assert pearson(pairs, min_pairs=192) == 1.0
+
+
+def test_align_hourly_maps_buckets_to_their_hour():
+    power = [(0, 1.0), (15 * MIN, 2.0), (HOUR, 3.0), (2 * HOUR, 4.0)]
+    weather = [(0, 10.0), (HOUR, 20.0)]
+    assert align_hourly(power, weather) == [(1.0, 10.0), (2.0, 10.0), (3.0, 20.0)]
+
+
+def test_summary_without_rating_has_no_health():
+    window = Window(0, 30 * 24 * HOUR)
+    attrs = summary_attributes(window, metrics(300.0), [], [], [], None, 15 * MIN)
+    assert attrs["twin_health_score"] is None and attrs["twin_overload"] is None
+    assert attrs["twin_corr_temperature"] is None
+    assert attrs["twin_energy_kwh"] == 300.0
+    assert attrs["twin_window_start"] == 0 and attrs["twin_window_end"] == window.end_ms
+
+
+def test_summary_overload_against_rating():
+    window = Window(0, 30 * 24 * HOUR)
+    attrs = summary_attributes(window, metrics(300.0, max_w=2300.0), [], [], [], 2000.0, 15 * MIN)
+    assert attrs["twin_overload"] is True and attrs["twin_health_score"] == 70.0
+    ok = summary_attributes(window, metrics(300.0, max_w=2100.0), [], [], [], 2000.0, 15 * MIN)
+    assert ok["twin_overload"] is False and ok["twin_health_score"] == 100.0
