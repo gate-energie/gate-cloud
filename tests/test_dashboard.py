@@ -121,7 +121,7 @@ def test_entity_label_on_single_entity_alias_is_reported():
     assert any("w5" in p for p in unsupported(bad))
 
 
-REAL = json.loads(Path("charts/gate-cloud/files/dashboard.json").read_text(encoding="utf-8"))
+REAL = json.loads((Path(__file__).resolve().parents[1] / "charts/gate-cloud/files/dashboard.json").read_text(encoding="utf-8"))
 
 
 def test_real_template_renders_and_is_supported():
@@ -139,3 +139,22 @@ def test_every_layout_widget_exists_and_fits_the_grid():
         for wid, pos in state["layouts"]["main"]["widgets"].items():
             assert wid in conf["widgets"]
             assert pos["col"] + pos["sizeX"] <= 24
+
+
+def test_widgets_of_a_state_do_not_overlap_and_nav_headers_are_visible():
+    conf = REAL["configuration"]
+    for name, state in conf["states"].items():
+        cells = {}
+        for wid, pos in state["layouts"]["main"]["widgets"].items():
+            for r in range(pos["row"], pos["row"] + pos["sizeY"]):
+                for c in range(pos["col"], pos["col"] + pos["sizeX"]):
+                    assert (r, c) not in cells, f"{name}: {wid} overlaps {cells[(r, c)]}"
+                    cells[(r, c)] = wid
+        navs = [conf["widgets"][wid] for wid in state["layouts"]["main"]["widgets"]
+                if conf["widgets"][wid]["typeFullFqn"] == "system.cards.markdown_card"]
+        assert len(navs) == 1
+        assert navs[0]["config"]["showTitle"] is True
+        assert len(navs[0]["config"]["actions"]["headerButton"]) == 2
+    for widget in conf["widgets"].values():
+        if widget["typeFullFqn"] == "system.cards.value_card":
+            assert widget["config"]["settings"]["showLabel"] is False

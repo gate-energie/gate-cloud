@@ -56,10 +56,10 @@
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 24,
-        "sizeY": 1,
+        "sizeY": 2,
         "config": {
           "datasources": [],
-          "showTitle": false,
+          "showTitle": true,
           "backgroundColor": "#fff",
           "color": "rgba(0, 0, 0, 0.87)",
           "padding": "0px",
@@ -76,7 +76,7 @@
           "iconSize": "24px",
           "titleTooltip": "",
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "widgetStyle": {},
           "titleStyle": {
             "fontSize": "16px",
@@ -142,7 +142,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -285,7 +285,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -428,7 +428,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -571,7 +571,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -869,7 +869,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -1012,7 +1012,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -1706,10 +1706,10 @@
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 24,
-        "sizeY": 1,
+        "sizeY": 2,
         "config": {
           "datasources": [],
-          "showTitle": false,
+          "showTitle": true,
           "backgroundColor": "#fff",
           "color": "rgba(0, 0, 0, 0.87)",
           "padding": "0px",
@@ -1726,7 +1726,7 @@
           "iconSize": "24px",
           "titleTooltip": "",
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "widgetStyle": {},
           "titleStyle": {
             "fontSize": "16px",
@@ -2163,10 +2163,10 @@
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 24,
-        "sizeY": 1,
+        "sizeY": 2,
         "config": {
           "datasources": [],
-          "showTitle": false,
+          "showTitle": true,
           "backgroundColor": "#fff",
           "color": "rgba(0, 0, 0, 0.87)",
           "padding": "0px",
@@ -2183,7 +2183,7 @@
           "iconSize": "24px",
           "titleTooltip": "",
           "dropShadow": true,
-          "enableFullscreen": true,
+          "enableFullscreen": false,
           "widgetStyle": {},
           "titleStyle": {
             "fontSize": "16px",
@@ -2249,7 +2249,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -2392,7 +2392,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -2535,7 +2535,7 @@
           "settings": {
             "labelPosition": "top",
             "layout": "square",
-            "showLabel": true,
+            "showLabel": false,
             "labelFont": {
               "family": "Roboto",
               "size": 16,
@@ -3327,62 +3327,62 @@
             "widgets": {
               "7050d3e0-e340-56df-b96c-1bb6d8aff4ff": {
                 "sizeX": 24,
-                "sizeY": 1,
+                "sizeY": 2,
                 "row": 0,
                 "col": 0
               },
               "005aa622-b4dc-52fb-a492-b1d38ef447e0": {
                 "sizeX": 6,
                 "sizeY": 3,
-                "row": 1,
+                "row": 2,
                 "col": 0
               },
               "863ffaa0-9aea-5c90-b1e1-1a47f24c14f8": {
                 "sizeX": 6,
                 "sizeY": 3,
-                "row": 1,
+                "row": 2,
                 "col": 6
               },
               "92d25027-0470-59b1-9322-c041fcfd7276": {
                 "sizeX": 6,
                 "sizeY": 3,
-                "row": 1,
+                "row": 2,
                 "col": 12
               },
               "adc88d5d-b496-526e-bef4-bd038916216c": {
                 "sizeX": 6,
                 "sizeY": 3,
-                "row": 1,
+                "row": 2,
                 "col": 18
               },
               "4a45f6e6-3378-557d-ae10-f7f8633aa1a7": {
                 "sizeX": 12,
                 "sizeY": 3,
-                "row": 4,
+                "row": 5,
                 "col": 0
               },
               "7e765c16-3e3d-5f1d-9d10-2b8c3feb0272": {
                 "sizeX": 6,
                 "sizeY": 3,
-                "row": 4,
+                "row": 5,
                 "col": 12
               },
               "56c37f16-264d-5051-a097-5a1827205484": {
                 "sizeX": 6,
                 "sizeY": 3,
-                "row": 4,
+                "row": 5,
                 "col": 18
               },
               "2e937a51-d281-569c-9286-deeb495717b3": {
                 "sizeX": 24,
                 "sizeY": 7,
-                "row": 7,
+                "row": 8,
                 "col": 0
               },
               "97b292e6-0e78-5ac2-b477-3d2c8f13b1fb": {
                 "sizeX": 24,
                 "sizeY": 8,
-                "row": 14,
+                "row": 15,
                 "col": 0
               }
             },
@@ -3405,20 +3405,20 @@
             "widgets": {
               "aacf90fe-3613-50c1-9f54-a9e55241587a": {
                 "sizeX": 24,
-                "sizeY": 1,
+                "sizeY": 2,
                 "row": 0,
                 "col": 0
               },
               "df12595f-63f1-5ebb-989b-c74f7a79bf1b": {
                 "sizeX": 24,
                 "sizeY": 10,
-                "row": 1,
+                "row": 2,
                 "col": 0
               },
               "43684784-de7d-522a-ad33-778970dbfcee": {
                 "sizeX": 24,
                 "sizeY": 8,
-                "row": 11,
+                "row": 12,
                 "col": 0
               }
             },
@@ -3441,38 +3441,38 @@
             "widgets": {
               "81a62864-5364-58c6-a1de-13a500071a3d": {
                 "sizeX": 24,
-                "sizeY": 1,
+                "sizeY": 2,
                 "row": 0,
                 "col": 0
               },
               "c50a7589-96bc-57ba-ae48-ae97ffd9fc56": {
                 "sizeX": 8,
                 "sizeY": 3,
-                "row": 1,
+                "row": 2,
                 "col": 0
               },
               "5b468580-1cb1-5818-986b-4c1e69f7d720": {
                 "sizeX": 8,
                 "sizeY": 3,
-                "row": 1,
+                "row": 2,
                 "col": 8
               },
               "ba7b9302-4700-5f7c-9694-8e0d4a24645b": {
                 "sizeX": 8,
                 "sizeY": 3,
-                "row": 1,
+                "row": 2,
                 "col": 16
               },
               "d8e49824-bed5-5253-9832-1f9c0106ebd1": {
                 "sizeX": 24,
                 "sizeY": 8,
-                "row": 4,
+                "row": 5,
                 "col": 0
               },
               "ec866552-9de9-5716-ab41-8cae70d94885": {
                 "sizeX": 24,
                 "sizeY": 7,
-                "row": 12,
+                "row": 13,
                 "col": 0
               }
             },
