@@ -7,5 +7,8 @@ The sensor `asset_model_inputs_changed` syncs the asset model into ThingsFlow
 ({{ .Values.thingsflow.url }}) within a few minutes. It starts on its own; stop
 it in the UI (Automation -> Sensors) to pause the sync.
 
+Schedules, all on by default: `weather_observations` hourly at :10,
+`circuit_daily_metrics` daily at 01:30 and `asset_twin_summary` daily at 01:45.
+
 The Secret {{ .Values.thingsflow.existingSecret }} must hold THINGSFLOW_USERNAME
 and THINGSFLOW_PASSWORD for the GATE tenant-admin account.

@@ -13,7 +13,7 @@ and the analytics built on them.
 gate-energie/edge          ThingsFlow (ns thingsflow)          gate-cloud (ns gate)
   Refoss EM16P   ──HTTP──►  device telemetry      ◄──REST──  Dagster
   sync_attributes ───────►  device circuit_map    ◄──REST──    thingsflow_asset_model
-                            Building/Panel/circuit assets ◄──    (+ analytics, weather: next)
+                            Building/Panel/circuit assets ◄──    (+ analytics, weather)
 ```
 
 The only contract between the projects is the ThingsFlow REST API, used through
@@ -29,6 +29,9 @@ there.
 | asset `thingsflow_asset_model` | Creates/updates asset profiles, the Building, the Panel and one asset per circuit, with "Contains" relations down to the monitor device | on change, and daily |
 | sensor `asset_model_inputs_changed` | Hashes the asset model file and the monitor's `circuit_map`; requests a run when either changes. On from deployment | every 2 min |
 | schedule `daily_asset_model_sync` | Re-applies the model, restoring anything edited by hand | 06:00 America/Toronto |
+| asset `weather_observations` | Hourly Open-Meteo weather at the building, ingested into the `GATE Weather` device | hourly, :10 |
+| asset `circuit_daily_metrics` | Per-circuit and building metrics for one local day (energy from the annual counter, cost at the building's Rate D, utilisation, coverage, degree days) | daily 01:30, backfillable |
+| asset `asset_twin_summary` | 30-day summary per circuit as `twin_*` attributes (energy, cost, fraction, correlation with temperature and humidity, overload against `rated_power_w`) | daily 01:45 |
 
 The sync looks up before it writes (a second run writes nothing) and never
 deletes: a circuit that disappears from the monitor is reported as an orphan
@@ -48,10 +51,18 @@ Environment, set by the chart:
 | `THINGSFLOW_USERNAME` / `THINGSFLOW_PASSWORD` | tenant-admin account dedicated to GATE (Secret) |
 | `GATE_MONITOR_DEVICE_ID` | ThingsFlow id of the Refoss device |
 | `GATE_ASSET_MODEL_PATH` | path of the mounted asset model |
+| `THINGSFLOW_INGEST_URL` | ThingsFlow HTTP ingest gateway (required), in-cluster by default |
+| `GATE_ASSET_HISTORY` | `true` writes `circuit_daily_metrics` to assets as telemetry; default `false` |
 
 ThingsFlow has no API keys, so GATE uses a dedicated tenant-admin user. Create
 it in ThingsFlow and store its credentials in the Secret named by
 `thingsflow.existingSecret`.
+
+## Weather
+
+`weather_observations` reads Open-Meteo, which needs no API key and is free for
+non-commercial use (10 000 calls/day); GATE is UQTR research. The location is
+the Building's `latitude` and `longitude` in the asset model.
 
 ## Develop
 
@@ -78,8 +89,8 @@ helm upgrade --install gate-cloud charts/gate-cloud -n gate \
 
 The chart wraps the official Dagster chart (webserver, daemon, Postgres for run
 history, K8sRunLauncher) and adds the asset model ConfigMap and a NetworkPolicy
-that lets the user-code and run pods reach flow-core and nothing else outside
-the namespace.
+that lets the user-code and run pods reach flow-core, the HTTP ingest gateway and
+HTTPS to the internet (Open-Meteo) and nothing else outside the namespace.
 
 ## Known ThingsFlow gaps
 

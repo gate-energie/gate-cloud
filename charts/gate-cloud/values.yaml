@@ -12,6 +12,15 @@ thingsflow:
   # GATE tenant-admin account. Created outside the chart; never in values.
   # The name is also listed under dagster-user-deployments envSecrets below.
   existingSecret: gate-cloud-thingsflow
+  # HTTP ingest gateway (device JWT), for the GATE Weather device.
+  ingestUrl: http://thingsflow-http-ingest.thingsflow.svc:8081
+  ingestPodLabels:
+    app: http-ingest
+  ingestPort: 8081
+
+# Write circuit_daily_metrics to assets as telemetry. Off until ThingsFlow keeps
+# history for asset telemetry (thingsflow-hwz / gate-d6m.3.1).
+assetHistory: false
 
 # ThingsFlow id of the Refoss monitor whose circuit_map drives the model.
 monitorDeviceId: ""
@@ -22,6 +31,12 @@ assetModel: ""
 
 networkPolicy:
   enabled: true
+  # Open-Meteo (HTTPS). NetworkPolicy cannot match DNS names, so allow 443 to
+  # the internet minus private ranges (the cluster stays reachable only through
+  # the rules above).
+  internetEgress:
+    enabled: true
+    exceptCidrs: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
 
 # ── Dagster (official chart) ─────────────────────────────────────────────────
 # Subchart values cannot be templated, so everything release-specific reaches
@@ -43,7 +58,7 @@ dagster:
       - name: gate-cloud
         image:
           repository: ghcr.io/gate-energie/gate-cloud
-          tag: "0.1.1"
+          tag: "0.2.0"
           pullPolicy: IfNotPresent
         dagsterApiGrpcArgs: ["--module-name", "gate_cloud.definitions"]
         port: 3030

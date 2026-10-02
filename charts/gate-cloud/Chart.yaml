@@ -2,8 +2,8 @@ apiVersion: v2
 name: gate-cloud
 description: GATE energy asset operations on top of ThingsFlow, orchestrated with Dagster.
 type: application
-version: 0.1.1
-appVersion: "0.1.1"
+version: 0.2.0
+appVersion: "0.2.0"
 dependencies:
   # The official Dagster chart: webserver, daemon (schedules, sensors),
   # K8sRunLauncher, the user-code deployment and Postgres for run history.

@@ -18,6 +18,8 @@ data:
   THINGSFLOW_URL: {{ .Values.thingsflow.url | quote }}
   GATE_MONITOR_DEVICE_ID: {{ .Values.monitorDeviceId | quote }}
   GATE_ASSET_MODEL_PATH: /etc/gate-cloud/asset_model.yaml
+  THINGSFLOW_INGEST_URL: {{ .Values.thingsflow.ingestUrl | quote }}
+  GATE_ASSET_HISTORY: {{ .Values.assetHistory | toString | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap

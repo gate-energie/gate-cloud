@@ -1,6 +1,7 @@
 {{- if .Values.networkPolicy.enabled }}
 # GATE code and run pods may reach the cluster DNS, their own namespace
-# (Dagster's Postgres and gRPC) and flow-core -- nothing else. In particular,
+# (Dagster's Postgres and gRPC), flow-core, the HTTP ingest gateway and HTTPS
+# to the internet (Open-Meteo) -- nothing else. In particular,
 # not ThingsFlow's databases: the REST API is the whole contract.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -34,4 +35,21 @@ spec:
               {{- toYaml .Values.thingsflow.podLabels | nindent 14 }}
       ports:
         - { protocol: TCP, port: {{ .Values.thingsflow.port }} }
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.thingsflow.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.thingsflow.ingestPodLabels | nindent 14 }}
+      ports:
+        - { protocol: TCP, port: {{ .Values.thingsflow.ingestPort }} }
+    {{- if .Values.networkPolicy.internetEgress.enabled }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: {{ toJson .Values.networkPolicy.internetEgress.exceptCidrs }}
+      ports:
+        - { protocol: TCP, port: 443 }
+    {{- end }}
 {{- end }}
