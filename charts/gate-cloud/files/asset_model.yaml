@@ -28,9 +28,10 @@ building:
   label: "GATE"
   attributes:
     timezone: "America/Toronto"
-    # Site location for weather (Open-Meteo); decimal degrees, WGS84. Legacy weather-service default (Montreal) -- confirm before release.
-    latitude: 45.5017
-    longitude: -73.5673
+    # Site location for weather (Open-Meteo); decimal degrees, WGS84.
+    # UQTR campus, Trois-Rivieres (Open-Meteo's grid is coarser than this).
+    latitude: 46.3485
+    longitude: -72.5775
     currency: "CAD"
     # Hydro-Quebec Rate D, carried over from the GATE backend defaults
     # (gate/backend/app/services/settings_service.py). Tier 1 applies to the
