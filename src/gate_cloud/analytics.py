@@ -41,13 +41,15 @@ def circuits(session, plan: Plan) -> list[Circuit]:
 
 def read_input(session, device, key: str, window: Window, bucket_ms: int) -> CircuitInput:
     power = session.timeseries(device, [f"{key}_active_power"], window.start_ms, window.end_ms, bucket_ms, "AVG")
+    # flow-core buckets on the epoch, not on start: a window-long MAX read
+    # spans two buckets for a local day, so take the max of all of them.
     peak = session.timeseries(device, [f"{key}_active_power"], window.start_ms, window.end_ms,
                               window.end_ms - window.start_ms, "MAX")
     peaks = peak.get(f"{key}_active_power") or []
     counter = f"{key}_energy_in_kwh"
     return CircuitInput(
         power=power.get(f"{key}_active_power") or [],
-        max_power_w=peaks[0][1] if peaks else None,
+        max_power_w=max((v for _, v in peaks), default=None),
         counter_start=session.last_value(device, counter, window.start_ms),
         counter_end=session.last_value(device, counter, window.end_ms),
     )

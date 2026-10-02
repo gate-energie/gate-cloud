@@ -1,5 +1,6 @@
 """Daily metrics and the 30-day summary, end to end against the fake."""
 import datetime as dt
+from zoneinfo import ZoneInfo
 
 import dagster as dg
 
@@ -12,13 +13,25 @@ MIN = 60_000
 DAY = local_day(dt.date(2026, 9, 30))
 
 
-def seed(watts_heating=1000.0, with_main=True):
+def seed(watts_heating=1000.0, with_main=True, day=DAY):
     dev = "dev-1"
-    SHARED.series[(dev, "heating_active_power")] = [(t, watts_heating) for t in range(DAY.start_ms, DAY.end_ms, MIN)]
-    SHARED.series[(dev, "heating_energy_in_kwh")] = [(DAY.start_ms - MIN, 100.0), (DAY.end_ms - MIN, 124.0)]
+    SHARED.series[(dev, "heating_active_power")] = [(t, watts_heating) for t in range(day.start_ms, day.end_ms, MIN)]
+    SHARED.series[(dev, "heating_energy_in_kwh")] = [(day.start_ms - MIN, 100.0), (day.end_ms - MIN, 124.0)]
     if with_main:
-        SHARED.series[(dev, "main_total_active_power")] = [(t, 2000.0) for t in range(DAY.start_ms, DAY.end_ms, MIN)]
-        SHARED.series[(dev, "main_total_energy_in_kwh")] = [(DAY.start_ms - MIN, 1000.0), (DAY.end_ms - MIN, 1048.0)]
+        SHARED.series[(dev, "main_total_active_power")] = [(t, 2000.0) for t in range(day.start_ms, day.end_ms, MIN)]
+        SHARED.series[(dev, "main_total_energy_in_kwh")] = [(day.start_ms - MIN, 1000.0), (day.end_ms - MIN, 1048.0)]
+
+
+def history_resources(tmp_path):
+    res = weather_resources(tmp_path)
+    res["thingsflow"] = FakeThingsFlowResource(
+        url="x", username="u", password="p", monitor_device_id="dev-1", ingest_url="http://ingest", asset_history=True
+    )
+    return res
+
+
+def written(entity):
+    return {e: point for e, point in SHARED.asset_points}[entity]["values"]
 
 
 def test_daily_partition_reports_metrics_and_writes_nothing_without_history(tmp_path):
@@ -71,3 +84,17 @@ def test_summary_writes_twin_attributes(tmp_path):
     attrs = SHARED.attrs["asset-heating"]
     assert "twin_energy_kwh" in attrs and attrs["twin_health_score"] is None
     assert "twin_updated_at" in attrs
+
+
+def test_daily_peak_late_in_the_local_day_is_kept(tmp_path):
+    # Toronto 22:00 is 02:00 UTC the next day: past the epoch-aligned day bucket
+    # boundary, so a window-long MAX read returns two buckets.
+    res = history_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed()
+    peak_ts = int(dt.datetime(2026, 9, 30, 22, tzinfo=ZoneInfo("America/Toronto")).timestamp() * 1000)
+    SHARED.series[("dev-1", "heating_active_power")] = [
+        (t, 3500.0 if t == peak_ts else 1000.0) for t in range(DAY.start_ms, DAY.end_ms, MIN)
+    ]
+    assert dg.materialize([d.circuit_daily_metrics], partition_key="2026-09-30", resources=res).success
+    assert written("asset-heating")["max_power_w"] == 3500.0
