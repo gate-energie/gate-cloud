@@ -30,7 +30,7 @@ from gate_cloud.twin import Window, local_day, summary_attributes, weather_day
 from gate_cloud.weather import ARCHIVE_URL, FORECAST_URL, OpenMeteo
 
 TIMEZONE = "America/Toronto"
-HISTORY_START = "2026-09-01"  # first partition day; confirm with the user before release
+HISTORY_START = "2026-08-10"  # first Refoss telemetry in ThingsFlow: 2026-08-10 15:29 local (partial day, see coverage_pct)
 WEATHER_DEVICE = "GATE Weather"
 
 hourly = dg.HourlyPartitionsDefinition(start_date=f"{HISTORY_START}-00:00", timezone=TIMEZONE)
