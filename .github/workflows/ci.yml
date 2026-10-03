@@ -18,6 +18,10 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
       - run: uv run pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test "charts/gate-cloud/files/dashboard/tests/*.test.mjs"
       - uses: azure/setup-helm@v4
       - name: Lint and render the chart
         run: |
