@@ -34,7 +34,7 @@ from gate_cloud.dashboard import (CircuitSeries, TemplateError, load_template, r
 from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
 from gate_cloud.twin import (
-    Window, circuit_metrics, daily_scatter, day_cost, heatmap, local_day, month_budget, month_extras, month_window,
+    Window, circuit_metrics, daily_energy, daily_scatter, day_cost, heatmap, local_day, month_budget, month_extras, month_window,
     same_time_yesterday, summary_attributes, today_window, weather_day,
 )
 from gate_cloud.weather import ARCHIVE_URL, FORECAST_URL, OpenMeteo
@@ -444,22 +444,23 @@ def asset_twin_summary(
         "missing_assets": result.missing_assets,
         "month_cost_cad": budget["month_cost_cad"], "month_budget_used_pct": budget["month_budget_used_pct"],
         "scatter_days": len(analytics.get("analytics_scatter") or []),
+        "daily_days": len(analytics.get("analytics_daily") or []),
     })
 
 
 def _analytics(session, monitor, key: str, weather_device, window: Window, end_day: dt.date) -> dict[str, Any]:
-    """Building analytics: weekday x hour heatmap over `window`, and energy
-    against mean temperature for every complete local day since HISTORY_START."""
+    """Building analytics: weekday x hour heatmap over `window`, energy of every
+    complete local day since HISTORY_START (no weather needed), and that energy
+    against mean temperature for the days that have both."""
     hourly_power = read_hourly(session, monitor, key, window)
     first = dt.date.fromisoformat(HISTORY_START)
     history = Window(local_day(first).start_ms, local_day(end_day).start_ms)
     temperature, humidity = read_weather(session, weather_device, history)
-    days = [
-        (day, kwh, weather_day(temperature, humidity, local_day(day))["temp_mean_c"])
-        for day, kwh in read_daily_energy(session, monitor, key, first, end_day)
-    ]
+    energy = read_daily_energy(session, monitor, key, first, end_day)
+    days = [(day, kwh, weather_day(temperature, humidity, local_day(day))["temp_mean_c"]) for day, kwh in energy]
     return {
         "analytics_heatmap": heatmap(hourly_power) if hourly_power else None,
+        "analytics_daily": daily_energy(energy),
         "analytics_scatter": daily_scatter(days),
     }
 

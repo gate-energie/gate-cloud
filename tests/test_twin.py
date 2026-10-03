@@ -19,7 +19,7 @@ from gate_cloud.twin import (
     summary_attributes,
     weather_day,
 )
-from gate_cloud.twin import daily_scatter, day_cost, heatmap, month_extras, same_time_yesterday, today_window
+from gate_cloud.twin import daily_energy, daily_scatter, day_cost, heatmap, month_extras, same_time_yesterday, today_window
 
 TZ = ZoneInfo("America/Toronto")
 
@@ -260,3 +260,9 @@ def test_a_flagged_main_aggregate_allocates_nothing():
     circuits = {"heating": metrics(30.0)}
     assert allocate(circuits, main, RateD(), days=1) is None
     assert circuits["heating"].cost_cad is None and circuits["heating"].energy_fraction_pct is None
+
+
+def test_daily_energy_keeps_known_non_negative_days_without_weather():
+    rows = [(dt.date(2026, 8, 12), 7.5), (dt.date(2026, 8, 11), -3.1), (dt.date(2026, 8, 10), None),
+            (dt.date(2026, 9, 1), 0.0)]
+    assert daily_energy(rows) == [{"date": "2026-08-12", "kwh": 7.5}, {"date": "2026-09-01", "kwh": 0.0}]

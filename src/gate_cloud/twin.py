@@ -291,6 +291,18 @@ def daily_scatter(days: list[tuple[dt.date, float | None, float | None]]) -> lis
     ]
 
 
+def daily_energy(days: list[tuple[dt.date, float | None]]) -> list[dict]:
+    """Counter energy per complete local day, without weather (the 30-day bars).
+
+    Unknown days and negative ones (a counter reset or a backwards clamp) stay out.
+    """
+    return [
+        {"date": day.isoformat(), "kwh": kwh}
+        for day, kwh in sorted(days, key=lambda d: d[0])
+        if kwh is not None and kwh >= 0
+    ]
+
+
 def month_extras(month_cost: float | None, elapsed_days: int, days_in_month: int) -> dict:
     """Average daily cost so far (None if unknown) and days left (always known)."""
     avg = round(month_cost / elapsed_days, 2) if month_cost is not None and elapsed_days > 0 else None

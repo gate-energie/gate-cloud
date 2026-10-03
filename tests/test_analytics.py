@@ -378,6 +378,7 @@ def test_summary_writes_nightly_analytics(tmp_path):
     assert len(heat["values"]) == 7 and all(len(row) == 24 for row in heat["values"])
     assert heat["values"][2][12] == 2.0  # 2026-09-30 is a Wednesday, 2 kW
     assert b["analytics_scatter"] == [{"date": "2026-09-30", "kwh": 48.0, "temp_mean_c": 4.0}]
+    assert b["analytics_daily"] == [{"date": "2026-09-30", "kwh": 48.0}]
     assert "analytics_updated_at" in b and b["analytics_unknown"] == ""
     assert b["month_days_left"] == 30  # end_date 2026-10-02: one day elapsed of 31
     assert "month_avg_daily_cost_cad" in b["month_unknown"].split(",")  # no October counter seeded
@@ -459,3 +460,13 @@ def test_summary_skips_analytics_without_the_building(tmp_path):
     assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
     assert (("main_total_active_power",), 3_600_000, "AVG") not in calls
     assert "analytics_scatter" not in SHARED.attrs.get("asset-B", {})
+
+
+def test_daily_energy_does_not_need_weather(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed()  # main_total counter 1000 -> 1048 on 2026-09-30, no weather at all
+    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    b = SHARED.attrs["asset-B"]
+    assert b["analytics_scatter"] == []
+    assert b["analytics_daily"] == [{"date": "2026-09-30", "kwh": 48.0}]
