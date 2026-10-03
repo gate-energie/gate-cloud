@@ -15,3 +15,7 @@ test("renderCard rejects an inline event handler inside a tag", () => {
 test("renderCard accepts 'onboarding =' in text outside tags", () => {
   assert.equal(renderCard(fixture("ok_text_on.js"), []), "<div>Data onboarding = done</div>");
 });
+
+test("renderCard rejects an event handler after a slash", () => {
+  assert.throws(() => renderCard(fixture("bad_slash_onclick.js"), []), /event handler/);
+});

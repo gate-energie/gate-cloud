@@ -16,6 +16,12 @@ gate.fmt = function (value, decimals, unit) {
   if (n === null) return "—";
   return n.toFixed(decimals || 0) + (unit ? " " + unit : "");
 };
+gate.mean = function (values) {
+  if (!Array.isArray(values) || !values.length) return null;
+  var nums = values.map(gate.num);
+  if (nums.some(function (n) { return n === null; })) return null;
+  return nums.reduce(function (s, n) { return s + n; }, 0) / nums.length;
+};
 gate.rows = function (data, key) {
   if (!Array.isArray(data)) return [];
   return data.filter(function (r) {

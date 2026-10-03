@@ -1,4 +1,4 @@
-// WEATHER OUTLOOK. Classes: gate-big, gate-condition, gate-list, gate-list-row, gate-label,
+// WEATHER OUTLOOK. Classes: gate-big, gate-condition, gate-condition-now, gate-list, gate-list-row, gate-label,
 // gate-value, gate-subtitle, gate-tiles, gate-tile, gate-tile-date, gate-tile-range, gate-muted.
 // Weather row: temperature_c, humidity_pct, wind_speed_ms, forecast (JSON {days, hours}).
 var weather = gate.firstWithKey(data, "temperature_c") || {};
@@ -20,8 +20,16 @@ var condition = function (raw) {
   if (c >= 95 && c <= 99) return "Thunderstorm";
   return "—";
 };
-// No live weather code is recorded: the next forecast hour stands for "now".
-var nowCode = hours.length && hours[0] ? hours[0].code : days.length && days[0] ? days[0].code : null;
+// No live weather code is recorded: the forecast hour closest to now stands for "now"
+// (ctx.now lets tests fix the clock), else today's daily code.
+var now = gate.num(ctx && ctx.now);
+if (now === null) now = Date.now();
+var nearest = null;
+hours.forEach(function (h) {
+  var ts = h ? gate.num(h.ts) : null;
+  if (ts !== null && (nearest === null || Math.abs(ts - now) < Math.abs(nearest.ts - now))) nearest = { ts: ts, code: h.code };
+});
+var nowCode = nearest ? nearest.code : days.length && days[0] ? days[0].code : null;
 var row = function (label, value) {
   return '<div class="gate-list-row"><span class="gate-label">' + label + '</span><span class="gate-value">' + value + "</span></div>";
 };
@@ -33,7 +41,7 @@ var tiles = days.map(function (d) {
     condition(d.code) + '</div><div class="gate-tile-range">' + deg(d.tmin) + " / " + deg(d.tmax) + "</div></div>";
 }).join("");
 var html = '<div class="gate-big">' + gate.fmt(weather.temperature_c, 1, "°C") + "</div>" +
-  '<div class="gate-condition">' + condition(nowCode) + "</div>" +
+  '<div class="gate-condition gate-condition-now">' + condition(nowCode) + "</div>" +
   '<div class="gate-list">' + row("Humidity", gate.fmt(weather.humidity_pct, 0, "%")) +
   row("Wind", gate.fmt(weather.wind_speed_ms, 1, "m/s")) + "</div>" +
   '<div class="gate-subtitle">Forecast (3 days)</div>' +

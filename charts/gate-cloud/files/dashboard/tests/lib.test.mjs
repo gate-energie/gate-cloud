@@ -91,3 +91,14 @@ test("money formats dollars with a sign before the symbol", () => {
   assert.equal(gate.money(12.345, 0), "$12");
   assert.equal(gate.money(""), "—");
 });
+
+test("fmt puts a thin space (U+2009) before the unit", () => {
+  assert.equal(gate.fmt(2.5, 1, "kW"), "2.5 kW");
+  assert.equal(gate.fmt(3, 0, "%"), "3 %");
+});
+
+test("mean is null unless every value is known", () => {
+  assert.equal(gate.mean(["121.5", 122.5]), 122);
+  assert.equal(gate.mean([1]), 1);
+  for (const bad of [["1", ""], [null, 2], [], null, undefined]) assert.equal(gate.mean(bad), null);
+});

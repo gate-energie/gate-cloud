@@ -3,9 +3,7 @@
 // building row: today_peak_w, today_energy_kwh.
 var monitor = gate.firstWithKey(data, "main_total_active_power") || {};
 var building = gate.firstWithKey(data, "today_peak_w") || {};
-var volts = [monitor.main_phase_1_voltage, monitor.main_phase_2_voltage]
-  .map(gate.num).filter(function (v) { return v !== null; });
-var voltage = volts.length ? volts.reduce(function (s, v) { return s + v; }, 0) / volts.length : null;
+var voltage = gate.mean([monitor.main_phase_1_voltage, monitor.main_phase_2_voltage]);
 var rows = [
   ["Real-time load", gate.fmt(monitor.main_total_active_power, 0, "W")],
   ["Voltage", gate.fmt(voltage, 1, "V")],

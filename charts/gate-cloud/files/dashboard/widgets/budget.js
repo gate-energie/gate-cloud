@@ -1,5 +1,5 @@
 // MONTHLY BUDGET. Classes: gate-budget, gate-ring, gate-ring-inner, gate-ring-value, unknown,
-// gate-list, gate-list-row, gate-label, gate-value, gate-delta, gate-amber, gate-ok.
+// gate-list, gate-list-row, gate-label, gate-value, gate-delta, gate-amber, gate-ok, gate-muted.
 // Building row: monthly_budget, month_cost_cad, month_projected_cost_cad, month_budget_used_pct,
 // month_avg_daily_cost_cad, month_days_left, today_cost_cad, yesterday_cost_cad.
 var b = gate.firstWithKey(data, "month_budget_used_pct") || {};
@@ -8,10 +8,15 @@ var color = used === null ? "#1f2937" : used < 80 ? "#22c55e" : used < 100 ? "#f
 var fill = used === null ? 0 : Math.min(100, Math.max(0, used));
 var today = gate.num(b.today_cost_cad);
 var yesterday = gate.num(b.yesterday_cost_cad);
-var diff = today !== null && yesterday !== null ? today - yesterday : null;
+// Cents: a difference that rounds to $0.00 is neutral (no arrow, muted).
+var diff = today !== null && yesterday !== null ? Math.round((today - yesterday) * 100) / 100 : null;
 var diffHtml = diff === null ? '<span class="gate-delta">—</span>'
+  : diff === 0 ? '<span class="gate-delta gate-muted">' + gate.money(0) + " vs yesterday</span>"
   : '<span class="gate-delta ' + (diff > 0 ? "gate-amber" : "gate-ok") + '">' + (diff > 0 ? "▲ " : "▼ ") +
     gate.money(Math.abs(diff)) + " vs yesterday</span>";
+var budget = gate.num(b.monthly_budget);
+var spent = gate.num(b.month_cost_cad);
+var remaining = budget !== null && spent !== null ? budget - spent : null;
 var row = function (label, value) {
   return '<div class="gate-list-row"><span class="gate-label">' + label + '</span><span class="gate-value">' + value + "</span></div>";
 };
@@ -20,6 +25,7 @@ var html = '<div class="gate-budget"><div class="gate-ring' + (used === null ? "
   '<div class="gate-ring-inner"><span class="gate-ring-value">' + gate.fmt(used, 0, "%") + "</span></div></div>" +
   '<div class="gate-list">' +
   row("Budget", gate.money(b.monthly_budget)) +
+  row("Remaining", gate.money(remaining)) +
   row("Projected", gate.money(b.month_projected_cost_cad)) +
   row("Month total", gate.money(b.month_cost_cad)) +
   row("Avg daily", gate.money(b.month_avg_daily_cost_cad)) +

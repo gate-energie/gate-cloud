@@ -1,15 +1,26 @@
 // POWER FLOW. Classes: gate-flow, gate-flow-source, gate-flow-node, gate-flow-grid,
 // gate-flow-building, gate-flow-load, gate-flow-name, gate-flow-value, gate-flow-sub,
 // gate-flow-link (CSS-border connector), gate-flow-bus, gate-flow-loads, gate-flow-branch.
-// Monitor row: main_total_active_power plus one property per circuit (its label);
-// building row: today_energy_kwh.
+// Circuit labels come from the "gate:circuits" datasource keys in ctx.datasources;
+// the monitor row (first with main_total_active_power) holds their live W by label.
+// Without ctx.datasources, every numeric data key of the monitor row is a circuit
+// (ThingsBoard also adds entity fields, $datasource and "<label>|ts" timestamps).
+// Building row: today_energy_kwh.
 var monitor = gate.firstWithKey(data, "main_total_active_power") || {};
 var building = gate.firstWithKey(data, "today_energy_kwh") || {};
-var skip = /^(entity[A-Z][A-Za-z]*|deviceName|aliasName|dsIndex|dsName)$/;
-var total = gate.num(monitor.main_total_active_power);
+var TOTAL = "main_total_active_power";
+var entityField = /^(entity[A-Z][A-Za-z]*|deviceName|deviceType|aliasName|dsIndex|dsName)$/;
+var sources = ctx && Array.isArray(ctx.datasources) ? ctx.datasources : [];
+var circuitsDs = sources.filter(function (d) { return d && d.name === "gate:circuits"; })[0];
+var labels = circuitsDs && Array.isArray(circuitsDs.dataKeys)
+  ? circuitsDs.dataKeys.map(function (k) { return k && k.label; })
+    .filter(function (l) { return typeof l === "string" && l !== TOTAL; })
+  : Object.keys(monitor).filter(function (k) {
+    return k !== TOTAL && k.indexOf("|") < 0 && k.charAt(0) !== "$" && !entityField.test(k) && gate.num(monitor[k]) !== null;
+  });
+var total = gate.num(monitor[TOTAL]);
 var kw = function (w) { return w === null ? "—" : gate.fmt(w / 1000, 2, "kW"); };
-var loads = Object.keys(monitor)
-  .filter(function (k) { return k !== "main_total_active_power" && !skip.test(k); })
+var loads = labels
   .map(function (k) { return { name: k, w: gate.num(monitor[k]) }; })
   .sort(function (a, b) {
     if (a.w === null || b.w === null) return a.w === null ? (b.w === null ? 0 : 1) : -1;

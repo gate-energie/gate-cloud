@@ -18,6 +18,6 @@ export function renderCard(file, data, ctx = {}) {
   assert.ok(!out.includes("undefined"), "output contains undefined");
   assert.ok(!/<svg/i.test(out), "output contains <svg");
   assert.ok(!/<script/i.test(out), "output contains <script");
-  assert.ok(!/<[^>]*\son[a-z]+\s*=/i.test(out), "output contains an event handler");
+  assert.ok(!/<[^>]*[\s/]on[a-z]+\s*=/i.test(out), "output contains an event handler");
   return out;
 }

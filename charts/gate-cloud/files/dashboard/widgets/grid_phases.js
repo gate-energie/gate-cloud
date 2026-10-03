@@ -7,11 +7,10 @@ var monitor = gate.firstWithKey(data, "main_phase_1_active_power") || {};
 var building = gate.firstWithKey(data, "yesterday_peak_w") || {};
 var p1 = gate.num(monitor.main_phase_1_active_power);
 var p2 = gate.num(monitor.main_phase_2_active_power);
-var volts = [monitor.main_phase_1_voltage, monitor.main_phase_2_voltage]
-  .map(gate.num).filter(function (v) { return v !== null; });
-var voltage = volts.length ? volts.reduce(function (s, v) { return s + v; }, 0) / volts.length : null;
+var voltage = gate.mean([monitor.main_phase_1_voltage, monitor.main_phase_2_voltage]);
 var sum = p1 !== null && p2 !== null ? p1 + p2 : null;
-var imbalance = sum ? Math.abs(p1 - p2) / sum * 100 : null;
+var spread = sum === null ? null : Math.abs(p1 - p2);
+var imbalance = sum ? spread / sum * 100 : null;
 var stat = function (label, value) {
   return '<div class="gate-stat"><div class="gate-stat-label">' + label + '</div><div class="gate-stat-value">' + value + "</div></div>";
 };
@@ -31,5 +30,6 @@ var html = '<div class="gate-stats">' +
   '</div><div class="gate-phases">' +
   phase("Phase 1", p1, monitor.main_phase_1_voltage) + phase("Phase 2", p2, monitor.main_phase_2_voltage) +
   '</div><div class="gate-list-row"><span class="gate-label">Imbalance</span><span class="gate-value">' +
-  gate.fmt(imbalance, 1, "%") + "</span>" + badge + "</div>";
+  gate.fmt(imbalance, 1, "%") + '</span><span class="gate-label">Spread</span><span class="gate-value">' +
+  gate.fmt(spread, 0, "W") + "</span>" + badge + "</div>";
 return gate.card("GRID & PHASES", html);

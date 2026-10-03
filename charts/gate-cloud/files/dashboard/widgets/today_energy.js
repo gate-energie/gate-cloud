@@ -7,9 +7,12 @@ var building = gate.firstWithKey(data, "yesterday_same_time_kwh") || {};
 var today = gate.num(building.today_energy_kwh);
 var before = gate.num(building.yesterday_same_time_kwh);
 var delta = today !== null && before ? (today - before) / before * 100 : null;
-var deltaHtml = delta === null ? '<span class="gate-delta">—</span>'
-  : '<span class="gate-delta ' + (delta > 0 ? "gate-amber" : "gate-ok") + '">' + (delta > 0 ? "▲ " : "▼ ") +
-    gate.fmt(Math.abs(delta), 1, "%") + "</span>";
+// A change that rounds to 0.0 % is neutral: no arrow, muted.
+var shown = delta === null ? null : Math.round(delta * 10) / 10;
+var deltaHtml = shown === null ? '<span class="gate-delta">—</span>'
+  : shown === 0 ? '<span class="gate-delta gate-muted">' + gate.fmt(0, 1, "%") + "</span>"
+  : '<span class="gate-delta ' + (shown > 0 ? "gate-amber" : "gate-ok") + '">' + (shown > 0 ? "▲ " : "▼ ") +
+    gate.fmt(Math.abs(shown), 1, "%") + "</span>";
 var top = gate.withKey(data, "label")
   .map(function (r) { return { name: r.label || r.entityLabel || r.entityName, kwh: gate.num(r.today_energy_kwh) }; })
   .filter(function (c) { return c.kwh !== null; })
