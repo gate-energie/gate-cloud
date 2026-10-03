@@ -5,7 +5,9 @@ Why a template: the dashboard is designed in ThingsBoard and exported as JSON.
 That JSON carries ids and the circuit list of one installation, so it is kept
 as a template with gate placeholders (`${MONITOR_DEVICE_ID}`,
 `${WEATHER_DEVICE_ID}`, `${CIRCUIT_ASSET_TYPES}`, `${CIRCUIT_POWER_KEYS}`)
-that `render` fills from the twin. `templatize` is the inverse. ThingsBoard's
+that `render` fills from the twin. `${CIRCUIT_POWER_KEYS}` is either the whole
+dataKeys of a `gate:circuits` datasource or one element of that list (the other
+keys stay). `templatize` is the inverse. ThingsBoard's
 own variables (`${entityName}`) are camelCase and are never touched.
 
 Why these alias rules (ThingsFlow epic thingsflow-xse, issues 6mv, 8fo, l9m):
@@ -103,9 +105,15 @@ def render(template: dict, monitor_id: str, weather_id: str,
     def fill(node: Any) -> Any:
         if node == ASSET_TYPES_PLACEHOLDER:
             return sorted(asset_types)
-        if isinstance(node, dict) and node.get("name") == CIRCUITS_SOURCE \
-                and node.get("dataKeys") == POWER_KEYS_PLACEHOLDER:
-            return {**node, "dataKeys": copy.deepcopy(keys)}
+        if isinstance(node, dict) and node.get("name") == CIRCUITS_SOURCE:
+            data_keys = node.get("dataKeys")
+            if data_keys == POWER_KEYS_PLACEHOLDER:
+                return {**node, "dataKeys": copy.deepcopy(keys)}
+            if isinstance(data_keys, list) and POWER_KEYS_PLACEHOLDER in data_keys:
+                spliced = []
+                for key in data_keys:
+                    spliced.extend(copy.deepcopy(keys) if key == POWER_KEYS_PLACEHOLDER else [key])
+                return {**node, "dataKeys": spliced}
         if isinstance(node, str):
             return node.replace("${MONITOR_DEVICE_ID}", monitor_id).replace("${WEATHER_DEVICE_ID}", weather_id)
         return node
@@ -142,6 +150,44 @@ def load_template(directory: Path) -> dict:
     return out
 
 
+def _is_circuit_series(key: Any) -> bool:
+    """A rendered circuit series: `<circuit>_active_power` on the monitor, not a main aggregate."""
+    name = key.get("name") if isinstance(key, dict) else None
+    return isinstance(name, str) and name.endswith("_active_power") and not name.startswith("main_")
+
+
+def _restore_power_keys(data_keys: Any) -> Any:
+    """The whole list becomes the placeholder when it holds only circuit series; otherwise the
+    circuit series collapse into one placeholder element where the first one stood (at the end
+    when there were none, as with no circuits), keeping every other key in place."""
+    if not isinstance(data_keys, list) or all(_is_circuit_series(k) for k in data_keys):
+        return POWER_KEYS_PLACEHOLDER
+    out, placed = [], False
+    for key in data_keys:
+        if key == POWER_KEYS_PLACEHOLDER or _is_circuit_series(key):
+            if not placed:
+                out.append(POWER_KEYS_PLACEHOLDER)
+                placed = True
+        else:
+            out.append(key)
+    return out if placed else out + [POWER_KEYS_PLACEHOLDER]
+
+
+def referenced_files(directory: Path) -> dict[str, str]:
+    """The files `dashboard.json` in a template directory references as `${FILE:<relpath>}`,
+    by relative path, with their text. Other files in the directory (tests) are left out."""
+    root = Path(directory)
+    if not root.is_dir():
+        raise TemplateError(f"template directory {root} does not exist")
+    try:
+        raw = (root / "dashboard.json").read_text(encoding="utf-8")
+    except OSError as exc:
+        raise TemplateError(f"cannot read dashboard.json in {root}: {exc}") from exc
+    # Loading resolves and checks every reference (missing files, paths outside the directory).
+    load_template(root)
+    return {rel: (root / rel).read_text(encoding="utf-8") for rel in sorted(set(_FILE_REF.findall(raw)))}
+
+
 def templatize(dashboard: dict, monitor_id: str, weather_id: str,
                files: dict[str, str] | None = None) -> dict:
     if not monitor_id or not weather_id:
@@ -160,7 +206,7 @@ def templatize(dashboard: dict, monitor_id: str, weather_id: str,
             return node.replace(monitor_id, "${MONITOR_DEVICE_ID}").replace(weather_id, "${WEATHER_DEVICE_ID}")
         if isinstance(node, dict):
             if node.get("name") == CIRCUITS_SOURCE and "dataKeys" in node:
-                node = {**node, "dataKeys": POWER_KEYS_PLACEHOLDER}
+                node = {**node, "dataKeys": _restore_power_keys(node["dataKeys"])}
                 found["datasource"] = True
             if isinstance(node.get("assetTypes"), list) and node["assetTypes"] != BUILDING_TYPES:
                 node = {**node, "assetTypes": ASSET_TYPES_PLACEHOLDER}
@@ -220,9 +266,10 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     files = None
     if args.files:
-        root = Path(args.files)
-        files = {p.relative_to(root).as_posix(): p.read_text(encoding="utf-8")
-                 for p in sorted(root.rglob("*")) if p.is_file() and p.name != "dashboard.json"}
+        try:
+            files = referenced_files(Path(args.files))
+        except TemplateError as exc:
+            parser.error(str(exc))
     with open(args.export, encoding="utf-8") as f:
         template = templatize(json.load(f), args.monitor_id, args.weather_id, files)
     json.dump(template, sys.stdout, ensure_ascii=False, indent=2)

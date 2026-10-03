@@ -254,19 +254,6 @@ def test_templatize_restores_file_references_longest_first(tmp_path):
     assert out["configuration"]["widgets"]["w2"]["config"]["settings"]["markdownTextFunction"] == REFS
 
 
-def test_templatize_cli_restores_references_from_a_directory(tmp_path, capsys):
-    tdir = tmp_path / "t"
-    tdir.mkdir()
-    for rel, text in FILES.items():
-        (tdir / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tdir / rel).write_text(text, encoding="utf-8")
-    export = tmp_path / "export.json"
-    export.write_text(json.dumps(_rendered_card("const lib = 1;\nreturn lib + 'á';")), encoding="utf-8")
-    main(["templatize", str(export), "dev-1", "wx-1", "--files", str(tdir)])
-    got = json.loads(capsys.readouterr().out)
-    assert got["configuration"]["widgets"]["w2"]["config"]["settings"]["markdownTextFunction"] == REFS
-
-
 def _with_key(alias, key):
     bad = copy.deepcopy(rendered())
     bad["configuration"]["widgets"]["w7"] = {"typeFullFqn": "system.cards.entities_table", "config": {"datasources": [
@@ -284,3 +271,46 @@ def test_attribute_keys_on_type_aliases_must_be_type_attribute():
 def test_data_key_label_must_equal_name_on_type_aliases():
     problems = _with_key("building", {"name": "month_cost_cad", "label": "Costo", "type": "attribute"})
     assert any("w7" in p and "label" in p for p in problems)
+
+
+def _flow_template():
+    out = copy.deepcopy(TEMPLATE)
+    out["configuration"]["widgets"]["w8"] = {"typeFullFqn": "system.cards.markdown_card", "config": {"datasources": [
+        {"type": "entity", "name": "gate:circuits", "entityAliasId": "monitor", "dataKeys": [
+            {"name": "main_total_active_power", "type": "timeseries", "label": "main_total_active_power"},
+            "${CIRCUIT_POWER_KEYS}"]}]}}
+    return out
+
+
+def test_power_keys_placeholder_as_a_list_element_expands_in_place():
+    out = render(_flow_template(), "dev-1", "wx-1", CIRCUITS, ["HVAC"])
+    keys = out["configuration"]["widgets"]["w8"]["config"]["datasources"][0]["dataKeys"]
+    assert [(k["name"], k["label"]) for k in keys] == [
+        ("main_total_active_power", "main_total_active_power"),
+        ("heating_active_power", "Heating"), ("lights_active_power", "Lights")]
+    whole = out["configuration"]["widgets"]["w1"]["config"]["datasources"][0]["dataKeys"]
+    assert [k["name"] for k in whole] == ["heating_active_power", "lights_active_power"]
+
+
+def test_templatize_restores_the_power_keys_element_in_place():
+    out = render(_flow_template(), "dev-1", "wx-1", CIRCUITS, ["HVAC"])
+    assert templatize(out, "dev-1", "wx-1") == _flow_template()
+    none = render(_flow_template(), "dev-1", "wx-1", [], ["HVAC"])
+    assert templatize(none, "dev-1", "wx-1") == _flow_template()
+
+
+def test_templatize_cli_reads_only_files_the_template_references(tmp_path, capsys):
+    (tmp_path / "t").mkdir()
+    tdir = _dir(tmp_path / "t", _with_card(REFS), {**FILES, "tests/x.js": "lib", "widgets/unused.js": "1"})
+    export = tmp_path / "export.json"
+    export.write_text(json.dumps(_rendered_card("const lib = 1;\nreturn lib + 'á';")), encoding="utf-8")
+    main(["templatize", str(export), "dev-1", "wx-1", "--files", str(tdir)])
+    got = json.loads(capsys.readouterr().out)
+    assert got["configuration"]["widgets"]["w2"]["config"]["settings"]["markdownTextFunction"] == REFS
+
+
+def test_templatize_cli_fails_on_a_missing_directory(tmp_path):
+    export = tmp_path / "export.json"
+    export.write_text(json.dumps(rendered()), encoding="utf-8")
+    with pytest.raises((TemplateError, SystemExit)):
+        main(["templatize", str(export), "dev-1", "wx-1", "--files", str(tmp_path / "nope")])
