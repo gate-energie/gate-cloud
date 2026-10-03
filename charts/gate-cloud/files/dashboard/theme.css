@@ -1,0 +1,219 @@
+/* GATE dashboard theme (dashboardCss). Tokens live on the card roots, not :root,
+   because ThingsBoard prefixes every dashboard CSS selector with its own namespace. */
+.gate-card, .gate-nav {
+  --gate-bg: #0b1120;
+  --gate-card: #111827;
+  --gate-border: #1f2937;
+  --gate-text: #e5e7eb;
+  --gate-muted: #9ca3af;
+  --gate-cyan: #22d3ee;
+  --gate-blue: #3b82f6;
+  --gate-amber: #f59e0b;
+  --gate-red: #ef4444;
+  --gate-green: #22c55e;
+  --gate-purple: #a855f7;
+  --gate-grey: #4b5563;
+  --gate-slate: #94a3b8;
+  font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--gate-text);
+}
+
+/* Card shell and type scale */
+.gate-card {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.gate-card *, .gate-card *::before, .gate-card *::after { box-sizing: border-box; }
+.gate-nav { color: var(--gate-muted); font-size: 12px; letter-spacing: .04em; }
+.gate-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--gate-muted);
+}
+.gate-subtitle {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--gate-muted);
+}
+.gate-big { font-size: 28px; font-weight: 600; line-height: 1.1; color: var(--gate-cyan); font-variant-numeric: tabular-nums; }
+.gate-unit { font-size: 14px; font-weight: 500; color: var(--gate-muted); }
+.gate-muted { color: var(--gate-muted); }
+.gate-label { color: var(--gate-muted); }
+.gate-value { color: var(--gate-text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.gate-ok { color: var(--gate-green); }
+.gate-amber, .gate-up { color: var(--gate-amber); }
+.gate-down { color: var(--gate-cyan); }
+.gate-red { color: var(--gate-red); }
+.gate-delta { font-size: 12px; font-weight: 500; }
+
+/* Rows, lists and stats */
+.gate-row, .gate-list-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--gate-border);
+}
+.gate-list { display: flex; flex-direction: column; }
+.gate-list-row:last-child { border-bottom: 0; }
+.gate-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.gate-stat { background: var(--gate-bg); border: 1px solid var(--gate-border); border-radius: 6px; padding: 6px 8px; }
+.gate-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--gate-muted); }
+.gate-stat-value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Bars and badges */
+.gate-bar { position: relative; height: 6px; margin: 3px 0; border-radius: 3px; background: var(--gate-border); overflow: hidden; }
+.gate-bar > span { display: block; height: 100%; border-radius: 3px; }
+.gate-bar.unknown { background: repeating-linear-gradient(90deg, var(--gate-border) 0 4px, transparent 4px 8px); }
+.gate-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.gate-badge.gate-muted { color: var(--gate-muted); }
+
+/* Power flow: grid -> building, a bus, then one branch per load */
+.gate-flow { display: flex; flex-direction: column; align-items: stretch; flex: 1; }
+.gate-flow-source { display: flex; align-items: center; justify-content: center; }
+.gate-flow-source > .gate-flow-link { flex: 0 0 40px; height: 0; border-top: 2px solid var(--gate-cyan); }
+.gate-flow-node {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--gate-border);
+  border-radius: 8px;
+  background: var(--gate-bg);
+  text-align: center;
+}
+.gate-flow-grid { border-color: var(--gate-blue); }
+.gate-flow-building { border-color: var(--gate-cyan); }
+.gate-flow-load { border-color: var(--gate-border); }
+.gate-flow-name { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--gate-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gate-flow-value { font-size: 16px; font-weight: 600; color: var(--gate-cyan); font-variant-numeric: tabular-nums; }
+.gate-flow-load .gate-flow-value { font-size: 13px; color: var(--gate-text); }
+.gate-flow-sub { font-size: 11px; color: var(--gate-muted); }
+.gate-flow-bus { height: 14px; margin: 0 10%; border-bottom: 2px solid var(--gate-cyan); border-left: 0; position: relative; }
+.gate-flow-bus::before { content: ""; position: absolute; left: 50%; top: 0; height: 100%; border-left: 2px solid var(--gate-cyan); }
+.gate-flow-loads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.gate-flow-branch { display: flex; flex-direction: column; align-items: stretch; }
+.gate-flow-branch > .gate-flow-link { height: 12px; width: 0; margin: 0 auto; border-left: 2px solid var(--gate-cyan); }
+
+/* Grid & phases */
+.gate-phases { display: flex; flex-direction: column; gap: 4px; }
+.gate-phase { min-width: 0; }
+.gate-phase-head { display: flex; justify-content: space-between; gap: 8px; }
+
+/* 30-day columns */
+.gate-cols { display: flex; align-items: flex-end; gap: 2px; flex: 1; min-height: 40px; }
+.gate-col { position: relative; flex: 1; height: 100%; }
+.gate-col-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px 2px 0 0; background: var(--gate-blue); }
+.gate-col-empty { border-bottom: 2px dashed var(--gate-border); }
+.gate-cols-legend { display: flex; gap: 6px; align-items: baseline; font-size: 11px; }
+
+/* Weather */
+.gate-condition { color: var(--gate-text); }
+.gate-condition-now { font-size: 14px; font-weight: 500; }
+.gate-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.gate-tile { padding: 6px; border: 1px solid var(--gate-border); border-radius: 6px; background: var(--gate-bg); text-align: center; font-size: 11px; }
+.gate-tile-date { color: var(--gate-muted); }
+.gate-tile-range { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Budget ring and breakdown donut: a conic-gradient disc with a hole */
+.gate-budget { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px; align-items: center; }
+.gate-budget > .gate-delta { grid-column: 1 / -1; }
+.gate-ring, .gate-donut {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+}
+.gate-ring.unknown, .gate-donut.unknown { background: var(--gate-border); }
+.gate-ring-inner, .gate-donut-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background: var(--gate-card);
+}
+.gate-ring-value, .gate-donut-value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gate-breakdown { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(180px, auto); gap: 16px; align-items: center; }
+.gate-breakdown-bars { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px 16px; }
+.gate-breakdown-row { min-width: 0; }
+.gate-breakdown-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.gate-legend { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.gate-legend-item { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.gate-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+/* Circuit cost table */
+.gate-table { display: flex; flex-direction: column; font-size: 12px; }
+.gate-table-head, .gate-table-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 2fr) repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--gate-border);
+}
+.gate-table-head { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--gate-muted); }
+.gate-table-total { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--gate-muted); }
+.gate-table-name { min-width: 0; }
+.gate-table-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Heatmap: every cell keeps a 1px border so the lowest step (the card colour) stays visible */
+.gate-heat { gap: 2px; font-size: 10px; }
+.gate-heat-corner { min-width: 28px; }
+.gate-heat-hour { color: var(--gate-muted); text-align: left; }
+.gate-heat-day { color: var(--gate-muted); padding-right: 4px; text-transform: capitalize; }
+.gate-heat-cell { min-height: 14px; border: 1px solid var(--gate-border); border-radius: 2px; }
+.gate-heat-empty { background: transparent; border-style: dashed; }
+.gate-heat-legend { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.gate-heat-swatch { display: inline-block; width: 14px; height: 10px; border: 1px solid var(--gate-border); border-radius: 2px; }
+
+/* Scatter: dots and the trend are absolute inside the 2:1 plot */
+.gate-scatter { display: flex; flex-direction: column; gap: 2px; }
+.gate-scatter-plot { border-left: 1px solid var(--gate-border); border-bottom: 1px solid var(--gate-border); overflow: hidden; }
+.gate-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gate-cyan);
+  opacity: .85;
+  transform: translate(-50%, 50%);
+}
+.gate-trend { position: absolute; height: 2px; margin-bottom: -1px; background: var(--gate-amber); }
+.gate-axis { font-size: 10px; color: var(--gate-muted); font-variant-numeric: tabular-nums; }
+.gate-axis-x { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; }
+.gate-axis-y-max, .gate-axis-y-min, .gate-axis-x-min, .gate-axis-x-max { white-space: nowrap; }
+.gate-scatter-r { font-size: 12px; }
+
+/* Asset tiles */
+.gate-assets { gap: 10px; }
+.gate-asset { padding: 8px 10px; border: 1px solid var(--gate-border); border-radius: 8px; background: var(--gate-bg); }
+.gate-asset-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-bottom: 4px; }
+.gate-asset-name { font-size: 14px; font-weight: 600; }
+.gate-asset-type { font-size: 11px; color: var(--gate-muted); }
+.gate-asset-badges { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; }

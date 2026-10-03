@@ -1,0 +1,2440 @@
+{
+  "title": "GATE — Operación",
+  "configuration": {
+    "description": "GATE operations (gate-cloud)",
+    "entityAliases": {
+      "monitor": {
+        "id": "monitor",
+        "alias": "Monitor",
+        "filter": {
+          "type": "singleEntity",
+          "resolveMultiple": false,
+          "singleEntity": {
+            "entityType": "DEVICE",
+            "id": "${MONITOR_DEVICE_ID}"
+          }
+        }
+      },
+      "weather_ts": {
+        "id": "weather_ts",
+        "alias": "Weather (time series)",
+        "filter": {
+          "type": "singleEntity",
+          "resolveMultiple": false,
+          "singleEntity": {
+            "entityType": "DEVICE",
+            "id": "${WEATHER_DEVICE_ID}"
+          }
+        }
+      },
+      "weather": {
+        "id": "weather",
+        "alias": "Weather",
+        "filter": {
+          "type": "deviceType",
+          "resolveMultiple": true,
+          "deviceNameFilter": "",
+          "deviceTypes": [
+            "weather"
+          ]
+        }
+      },
+      "circuits": {
+        "id": "circuits",
+        "alias": "Circuits",
+        "filter": {
+          "type": "assetType",
+          "resolveMultiple": true,
+          "assetNameFilter": "",
+          "assetTypes": "${CIRCUIT_ASSET_TYPES}"
+        }
+      },
+      "building": {
+        "id": "building",
+        "alias": "Building",
+        "filter": {
+          "type": "assetType",
+          "resolveMultiple": true,
+          "assetNameFilter": "",
+          "assetTypes": [
+            "Building"
+          ]
+        }
+      }
+    },
+    "widgets": {
+      "4f16e9cd-9139-5593-bffd-6258ca548441": {
+        "id": "4f16e9cd-9139-5593-bffd-6258ca548441",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 24,
+        "sizeY": 2,
+        "config": {
+          "datasources": [],
+          "showTitle": true,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": false,
+            "markdownTextPattern": "<div class=\"gate-nav\">Building energy · live and analytics</div>",
+            "markdownTextFunction": "",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "GATE · Overview",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 600,
+            "color": "#e5e7eb",
+            "letterSpacing": "0.08em"
+          },
+          "showLegend": false,
+          "actions": {
+            "headerButton": [
+              {
+                "id": "6e6ef2e6-f0d0-5f9e-89d0-8d89a233095e",
+                "name": "Analytics",
+                "icon": "insights",
+                "type": "openDashboardState",
+                "targetDashboardStateId": "analytics",
+                "openRightLayout": false,
+                "setEntityId": false,
+                "stateEntityParamName": null
+              },
+              {
+                "id": "c9064883-8fb5-5991-9854-f6144c3bf9e2",
+                "name": "Assets",
+                "icon": "category",
+                "type": "openDashboardState",
+                "targetDashboardStateId": "assets",
+                "openRightLayout": false,
+                "setEntityId": false,
+                "stateEntityParamName": null
+              }
+            ]
+          }
+        }
+      },
+      "235c6574-47dc-5fc4-9c4d-9fed75d7c4f2": {
+        "id": "235c6574-47dc-5fc4-9c4d-9fed75d7c4f2",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 10,
+        "sizeY": 6,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": "gate:circuits",
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": "W",
+                  "decimals": 0
+                },
+                "${CIRCUIT_POWER_KEYS}"
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/power_flow.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Power Flow",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "eedf1ce7-938d-58ae-b425-98507c16348a": {
+        "id": "eedf1ce7-938d-58ae-b425-98507c16348a",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 7,
+        "sizeY": 6,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_1_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_1_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_2_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_2_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_total_current",
+                  "type": "timeseries",
+                  "label": "main_total_current",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_peak_w",
+                  "type": "attribute",
+                  "label": "today_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/live_telemetry.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Live Telemetry",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "2223c29d-d6da-56b7-81c2-07506e8ea021": {
+        "id": "2223c29d-d6da-56b7-81c2-07506e8ea021",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 7,
+        "sizeY": 6,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_phase_1_active_power",
+                  "type": "timeseries",
+                  "label": "main_phase_1_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_2_active_power",
+                  "type": "timeseries",
+                  "label": "main_phase_2_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_1_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_1_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_2_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_2_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_total_current",
+                  "type": "timeseries",
+                  "label": "main_total_current",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_peak_w",
+                  "type": "attribute",
+                  "label": "today_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_peak_w",
+                  "type": "attribute",
+                  "label": "yesterday_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/grid_phases.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Grid Phases",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "e6ba45a9-e994-5e7a-bd9e-a1a5d1e0176b": {
+        "id": "e6ba45a9-e994-5e7a-bd9e-a1a5d1e0176b",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 7,
+        "sizeY": 6,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_same_time_kwh",
+                  "type": "attribute",
+                  "label": "yesterday_same_time_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "circuits",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "label",
+                  "type": "entityField",
+                  "label": "label",
+                  "color": "#9ca3af",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/today_energy.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Today Energy",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "7d4af089-89f6-5194-a98b-dadde9b95a3d": {
+        "id": "7d4af089-89f6-5194-a98b-dadde9b95a3d",
+        "typeFullFqn": "system.time_series_chart",
+        "type": "timeseries",
+        "sizeX": 10,
+        "sizeY": 3,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "bar"
+                  },
+                  "units": "kW",
+                  "decimals": 2,
+                  "usePostProcessing": true,
+                  "postFuncBody": "return value / 1000;"
+                }
+              ]
+            }
+          ],
+          "showTitle": true,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "showLegend": false,
+            "legendConfig": {
+              "direction": "row",
+              "position": "bottom",
+              "sortDataKeys": false,
+              "showMin": false,
+              "showMax": false,
+              "showAvg": false,
+              "showTotal": false,
+              "showLatest": false
+            },
+            "thresholds": [],
+            "dataZoom": false,
+            "stack": false,
+            "yAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "#9ca3af",
+              "position": "left",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "#9ca3af",
+              "showTicks": true,
+              "ticksColor": "#1f2937",
+              "showLine": true,
+              "lineColor": "#1f2937",
+              "showSplitLines": true,
+              "splitLinesColor": "#1f2937"
+            },
+            "xAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "#9ca3af",
+              "position": "bottom",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 10,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "#9ca3af",
+              "ticksFormat": {},
+              "showTicks": true,
+              "ticksColor": "#1f2937",
+              "showLine": true,
+              "lineColor": "#1f2937",
+              "showSplitLines": true,
+              "splitLinesColor": "#1f2937"
+            },
+            "legendLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "legendLabelColor": "#e5e7eb",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "16px"
+            },
+            "tooltipValueColor": "#e5e7eb",
+            "tooltipShowDate": true,
+            "tooltipDateFormat": {
+              "format": null,
+              "lastUpdateAgo": false,
+              "custom": false,
+              "auto": true,
+              "autoDateFormatSettings": {}
+            },
+            "tooltipDateFont": {
+              "family": "Roboto",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "tooltipDateColor": "#9ca3af",
+            "tooltipDateInterval": true,
+            "tooltipBackgroundColor": "rgba(17, 24, 39, 0.92)",
+            "tooltipBackgroundBlur": 4,
+            "background": {
+              "type": "color",
+              "color": "#111827",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(17,24,39,0.72)",
+                "blur": 3
+              }
+            },
+            "yAxes": {
+              "default": {
+                "units": "kW",
+                "decimals": 2,
+                "show": true,
+                "label": "",
+                "labelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "600",
+                  "lineHeight": "1"
+                },
+                "labelColor": "#9ca3af",
+                "position": "left",
+                "showTickLabels": true,
+                "tickLabelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "400",
+                  "lineHeight": "1"
+                },
+                "tickLabelColor": "#9ca3af",
+                "ticksFormatter": null,
+                "showTicks": true,
+                "ticksColor": "#1f2937",
+                "showLine": true,
+                "lineColor": "#1f2937",
+                "showSplitLines": true,
+                "splitLinesColor": "#1f2937",
+                "id": "default",
+                "order": 0
+              }
+            },
+            "noAggregationBarWidthSettings": {
+              "strategy": "group",
+              "groupWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              },
+              "barWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              }
+            },
+            "animation": {
+              "animation": true,
+              "animationThreshold": 2000,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut",
+              "animationDelay": 0,
+              "animationDurationUpdate": 300,
+              "animationEasingUpdate": "cubicOut",
+              "animationDelayUpdate": 0
+            },
+            "padding": "12px"
+          },
+          "title": "CONSUMPTION — 24 HOURS (HOURLY kW)",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "titleStyle": null,
+          "mobileHeight": null,
+          "configMode": "basic",
+          "actions": {},
+          "showTitleIcon": false,
+          "titleIcon": "thermostat",
+          "iconColor": "#22d3ee",
+          "useDashboardTimewindow": false,
+          "titleFont": {
+            "size": 11,
+            "sizeUnit": "px",
+            "family": "Roboto",
+            "weight": "600",
+            "style": "normal",
+            "lineHeight": "16px"
+          },
+          "titleColor": "#9ca3af",
+          "titleTooltip": "",
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "widgetCss": "",
+          "pageSize": 1024,
+          "units": "kW",
+          "decimals": 2,
+          "noDataDisplayMessage": "",
+          "margin": "0px",
+          "borderRadius": "0px",
+          "iconSize": "0px",
+          "timewindowStyle": {
+            "showIcon": false,
+            "iconSize": "24px",
+            "icon": null,
+            "iconPosition": "left",
+            "font": {
+              "size": 12,
+              "sizeUnit": "px",
+              "family": "Roboto",
+              "weight": "400",
+              "style": "normal",
+              "lineHeight": "16px"
+            },
+            "color": "#9ca3af",
+            "displayTypePrefix": true
+          },
+          "displayTimewindow": true,
+          "timewindow": {
+            "selectedTab": 0,
+            "realtime": {
+              "realtimeType": 0,
+              "timewindowMs": 86400000,
+              "interval": 3600000
+            },
+            "aggregation": {
+              "type": "AVG",
+              "limit": 25000
+            }
+          }
+        }
+      },
+      "608e0507-705d-52f8-a79a-03112c585b76": {
+        "id": "608e0507-705d-52f8-a79a-03112c585b76",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 10,
+        "sizeY": 3,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "analytics_scatter",
+                  "type": "attribute",
+                  "label": "analytics_scatter",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/daily_bars.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Daily Bars",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "1478400a-43b7-5910-8ea4-a37f03418279": {
+        "id": "1478400a-43b7-5910-8ea4-a37f03418279",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 7,
+        "sizeY": 6,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "weather",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "temperature_c",
+                  "type": "timeseries",
+                  "label": "temperature_c",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "humidity_pct",
+                  "type": "timeseries",
+                  "label": "humidity_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "wind_speed_ms",
+                  "type": "timeseries",
+                  "label": "wind_speed_ms",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "forecast",
+                  "type": "attribute",
+                  "label": "forecast",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/weather.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Weather",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "c1acde45-9378-5ab8-a004-84635dac232b": {
+        "id": "c1acde45-9378-5ab8-a004-84635dac232b",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 8,
+        "sizeY": 7,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "monthly_budget",
+                  "type": "attribute",
+                  "label": "monthly_budget",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_cost_cad",
+                  "type": "attribute",
+                  "label": "month_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_projected_cost_cad",
+                  "type": "attribute",
+                  "label": "month_projected_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_budget_used_pct",
+                  "type": "attribute",
+                  "label": "month_budget_used_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_avg_daily_cost_cad",
+                  "type": "attribute",
+                  "label": "month_avg_daily_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_days_left",
+                  "type": "attribute",
+                  "label": "month_days_left",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_cost_cad",
+                  "type": "attribute",
+                  "label": "yesterday_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/budget.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Budget",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba": {
+        "id": "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 16,
+        "sizeY": 7,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "circuits",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "label",
+                  "type": "entityField",
+                  "label": "label",
+                  "color": "#9ca3af",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_7d_energy_kwh",
+                  "type": "attribute",
+                  "label": "twin_7d_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_7d_cost_cad",
+                  "type": "attribute",
+                  "label": "twin_7d_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_energy_kwh",
+                  "type": "attribute",
+                  "label": "twin_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_cost_cad",
+                  "type": "attribute",
+                  "label": "twin_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/circuit_cost.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Circuit Cost",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "39891c99-b0a3-5032-8a94-a9abe401d291": {
+        "id": "39891c99-b0a3-5032-8a94-a9abe401d291",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 24,
+        "sizeY": 2,
+        "config": {
+          "datasources": [],
+          "showTitle": true,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": false,
+            "markdownTextPattern": "<div class=\"gate-nav\">Building energy · live and analytics</div>",
+            "markdownTextFunction": "",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "GATE · Analytics",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 600,
+            "color": "#e5e7eb",
+            "letterSpacing": "0.08em"
+          },
+          "showLegend": false,
+          "actions": {
+            "headerButton": [
+              {
+                "id": "8b1f6b19-96b6-5621-af98-e7e6bcbdadde",
+                "name": "Overview",
+                "icon": "dashboard",
+                "type": "openDashboardState",
+                "targetDashboardStateId": "overview",
+                "openRightLayout": false,
+                "setEntityId": false,
+                "stateEntityParamName": null
+              },
+              {
+                "id": "2bb4a716-015b-5724-b7e5-abfd635052db",
+                "name": "Assets",
+                "icon": "category",
+                "type": "openDashboardState",
+                "targetDashboardStateId": "assets",
+                "openRightLayout": false,
+                "setEntityId": false,
+                "stateEntityParamName": null
+              }
+            ]
+          }
+        }
+      },
+      "3c094d4e-72df-54c8-bb3e-acf067f383f1": {
+        "id": "3c094d4e-72df-54c8-bb3e-acf067f383f1",
+        "typeFullFqn": "system.time_series_chart",
+        "type": "timeseries",
+        "sizeX": 24,
+        "sizeY": 7,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line"
+                  },
+                  "units": "W",
+                  "decimals": 0
+                },
+                {
+                  "name": "main_phase_1_active_power",
+                  "type": "timeseries",
+                  "label": "main_phase_1_active_power",
+                  "color": "#3b82f6",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line"
+                  },
+                  "units": "W",
+                  "decimals": 0
+                },
+                {
+                  "name": "main_phase_2_active_power",
+                  "type": "timeseries",
+                  "label": "main_phase_2_active_power",
+                  "color": "#f59e0b",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line"
+                  },
+                  "units": "W",
+                  "decimals": 0
+                }
+              ]
+            }
+          ],
+          "showTitle": true,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "showLegend": true,
+            "legendConfig": {
+              "direction": "row",
+              "position": "bottom",
+              "sortDataKeys": false,
+              "showMin": false,
+              "showMax": false,
+              "showAvg": false,
+              "showTotal": false,
+              "showLatest": false
+            },
+            "thresholds": [],
+            "dataZoom": false,
+            "stack": false,
+            "yAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "#9ca3af",
+              "position": "left",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "#9ca3af",
+              "showTicks": true,
+              "ticksColor": "#1f2937",
+              "showLine": true,
+              "lineColor": "#1f2937",
+              "showSplitLines": true,
+              "splitLinesColor": "#1f2937"
+            },
+            "xAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "#9ca3af",
+              "position": "bottom",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 10,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "#9ca3af",
+              "ticksFormat": {},
+              "showTicks": true,
+              "ticksColor": "#1f2937",
+              "showLine": true,
+              "lineColor": "#1f2937",
+              "showSplitLines": true,
+              "splitLinesColor": "#1f2937"
+            },
+            "legendLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "legendLabelColor": "#e5e7eb",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "16px"
+            },
+            "tooltipValueColor": "#e5e7eb",
+            "tooltipShowDate": true,
+            "tooltipDateFormat": {
+              "format": null,
+              "lastUpdateAgo": false,
+              "custom": false,
+              "auto": true,
+              "autoDateFormatSettings": {}
+            },
+            "tooltipDateFont": {
+              "family": "Roboto",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "tooltipDateColor": "#9ca3af",
+            "tooltipDateInterval": true,
+            "tooltipBackgroundColor": "rgba(17, 24, 39, 0.92)",
+            "tooltipBackgroundBlur": 4,
+            "background": {
+              "type": "color",
+              "color": "#111827",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(17,24,39,0.72)",
+                "blur": 3
+              }
+            },
+            "yAxes": {
+              "default": {
+                "units": "W",
+                "decimals": 0,
+                "show": true,
+                "label": "",
+                "labelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "600",
+                  "lineHeight": "1"
+                },
+                "labelColor": "#9ca3af",
+                "position": "left",
+                "showTickLabels": true,
+                "tickLabelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "400",
+                  "lineHeight": "1"
+                },
+                "tickLabelColor": "#9ca3af",
+                "ticksFormatter": null,
+                "showTicks": true,
+                "ticksColor": "#1f2937",
+                "showLine": true,
+                "lineColor": "#1f2937",
+                "showSplitLines": true,
+                "splitLinesColor": "#1f2937",
+                "id": "default",
+                "order": 0
+              }
+            },
+            "noAggregationBarWidthSettings": {
+              "strategy": "group",
+              "groupWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              },
+              "barWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              }
+            },
+            "animation": {
+              "animation": true,
+              "animationThreshold": 2000,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut",
+              "animationDelay": 0,
+              "animationDurationUpdate": 300,
+              "animationEasingUpdate": "cubicOut",
+              "animationDelayUpdate": 0
+            },
+            "padding": "12px"
+          },
+          "title": "POWER TIMELINE — 7 DAYS",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "titleStyle": null,
+          "mobileHeight": null,
+          "configMode": "basic",
+          "actions": {},
+          "showTitleIcon": false,
+          "titleIcon": "thermostat",
+          "iconColor": "#22d3ee",
+          "useDashboardTimewindow": false,
+          "titleFont": {
+            "size": 11,
+            "sizeUnit": "px",
+            "family": "Roboto",
+            "weight": "600",
+            "style": "normal",
+            "lineHeight": "16px"
+          },
+          "titleColor": "#9ca3af",
+          "titleTooltip": "",
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "widgetCss": "",
+          "pageSize": 1024,
+          "units": "W",
+          "decimals": 0,
+          "noDataDisplayMessage": "",
+          "margin": "0px",
+          "borderRadius": "0px",
+          "iconSize": "0px",
+          "timewindowStyle": {
+            "showIcon": false,
+            "iconSize": "24px",
+            "icon": null,
+            "iconPosition": "left",
+            "font": {
+              "size": 12,
+              "sizeUnit": "px",
+              "family": "Roboto",
+              "weight": "400",
+              "style": "normal",
+              "lineHeight": "16px"
+            },
+            "color": "#9ca3af",
+            "displayTypePrefix": true
+          },
+          "displayTimewindow": true,
+          "timewindow": {
+            "selectedTab": 1,
+            "history": {
+              "historyType": 0,
+              "timewindowMs": 604800000,
+              "interval": 900000
+            },
+            "aggregation": {
+              "type": "AVG",
+              "limit": 25000
+            }
+          }
+        }
+      },
+      "4b9452d6-f4c6-55f2-88f4-8d063cb7458b": {
+        "id": "4b9452d6-f4c6-55f2-88f4-8d063cb7458b",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 12,
+        "sizeY": 7,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "analytics_heatmap",
+                  "type": "attribute",
+                  "label": "analytics_heatmap",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/heatmap.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Heatmap",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "c8e3a069-5fac-55c4-8799-5900f4116b82": {
+        "id": "c8e3a069-5fac-55c4-8799-5900f4116b82",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 12,
+        "sizeY": 7,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "analytics_scatter",
+                  "type": "attribute",
+                  "label": "analytics_scatter",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/scatter.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Scatter",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "4751f877-9193-58d0-89a2-5923d29abce0": {
+        "id": "4751f877-9193-58d0-89a2-5923d29abce0",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 24,
+        "sizeY": 6,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "circuits",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "label",
+                  "type": "entityField",
+                  "label": "label",
+                  "color": "#9ca3af",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_energy_kwh",
+                  "type": "attribute",
+                  "label": "twin_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_energy_fraction_pct",
+                  "type": "attribute",
+                  "label": "twin_energy_fraction_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_quality",
+                  "type": "attribute",
+                  "label": "twin_quality",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/breakdown.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Breakdown",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "e7d0544e-7926-5bba-a904-2d88f5332b54": {
+        "id": "e7d0544e-7926-5bba-a904-2d88f5332b54",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 24,
+        "sizeY": 2,
+        "config": {
+          "datasources": [],
+          "showTitle": true,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": false,
+            "markdownTextPattern": "<div class=\"gate-nav\">Building energy · live and analytics</div>",
+            "markdownTextFunction": "",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "GATE · Assets",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 600,
+            "color": "#e5e7eb",
+            "letterSpacing": "0.08em"
+          },
+          "showLegend": false,
+          "actions": {
+            "headerButton": [
+              {
+                "id": "062d5115-87a3-5754-9864-4ef093a5113f",
+                "name": "Overview",
+                "icon": "dashboard",
+                "type": "openDashboardState",
+                "targetDashboardStateId": "overview",
+                "openRightLayout": false,
+                "setEntityId": false,
+                "stateEntityParamName": null
+              },
+              {
+                "id": "9311ee03-1581-5127-a619-3cdaf7f65d93",
+                "name": "Analytics",
+                "icon": "insights",
+                "type": "openDashboardState",
+                "targetDashboardStateId": "analytics",
+                "openRightLayout": false,
+                "setEntityId": false,
+                "stateEntityParamName": null
+              }
+            ]
+          }
+        }
+      },
+      "2a477d8b-d234-519c-a05b-862797167bf4": {
+        "id": "2a477d8b-d234-519c-a05b-862797167bf4",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 24,
+        "sizeY": 12,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "circuits",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "label",
+                  "type": "entityField",
+                  "label": "label",
+                  "color": "#9ca3af",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "type",
+                  "type": "entityField",
+                  "label": "type",
+                  "color": "#9ca3af",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_energy_kwh",
+                  "type": "attribute",
+                  "label": "twin_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_cost_cad",
+                  "type": "attribute",
+                  "label": "twin_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_energy_fraction_pct",
+                  "type": "attribute",
+                  "label": "twin_energy_fraction_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_utilization_pct",
+                  "type": "attribute",
+                  "label": "twin_utilization_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_corr_temperature",
+                  "type": "attribute",
+                  "label": "twin_corr_temperature",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_corr_humidity",
+                  "type": "attribute",
+                  "label": "twin_corr_humidity",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_quality",
+                  "type": "attribute",
+                  "label": "twin_quality",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_health_score",
+                  "type": "attribute",
+                  "label": "twin_health_score",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_overload",
+                  "type": "attribute",
+                  "label": "twin_overload",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "rated_power_w",
+                  "type": "attribute",
+                  "label": "rated_power_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/asset_cards.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": ""
+          },
+          "title": "Asset Cards",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "b406bf7e-f510-5526-8786-8f7a52536729": {
+        "id": "b406bf7e-f510-5526-8786-8f7a52536729",
+        "typeFullFqn": "system.time_series_chart",
+        "type": "timeseries",
+        "sizeX": 24,
+        "sizeY": 8,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": "gate:circuits",
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": "${CIRCUIT_POWER_KEYS}"
+            }
+          ],
+          "showTitle": true,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "showLegend": true,
+            "legendConfig": {
+              "direction": "row",
+              "position": "bottom",
+              "sortDataKeys": false,
+              "showMin": false,
+              "showMax": false,
+              "showAvg": false,
+              "showTotal": false,
+              "showLatest": false
+            },
+            "thresholds": [],
+            "dataZoom": false,
+            "stack": false,
+            "yAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "#9ca3af",
+              "position": "left",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "#9ca3af",
+              "showTicks": true,
+              "ticksColor": "#1f2937",
+              "showLine": true,
+              "lineColor": "#1f2937",
+              "showSplitLines": true,
+              "splitLinesColor": "#1f2937"
+            },
+            "xAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "#9ca3af",
+              "position": "bottom",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 10,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "#9ca3af",
+              "ticksFormat": {},
+              "showTicks": true,
+              "ticksColor": "#1f2937",
+              "showLine": true,
+              "lineColor": "#1f2937",
+              "showSplitLines": true,
+              "splitLinesColor": "#1f2937"
+            },
+            "legendLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "legendLabelColor": "#e5e7eb",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "16px"
+            },
+            "tooltipValueColor": "#e5e7eb",
+            "tooltipShowDate": true,
+            "tooltipDateFormat": {
+              "format": null,
+              "lastUpdateAgo": false,
+              "custom": false,
+              "auto": true,
+              "autoDateFormatSettings": {}
+            },
+            "tooltipDateFont": {
+              "family": "Roboto",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "tooltipDateColor": "#9ca3af",
+            "tooltipDateInterval": true,
+            "tooltipBackgroundColor": "rgba(17, 24, 39, 0.92)",
+            "tooltipBackgroundBlur": 4,
+            "background": {
+              "type": "color",
+              "color": "#111827",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(17,24,39,0.72)",
+                "blur": 3
+              }
+            },
+            "yAxes": {
+              "default": {
+                "units": "W",
+                "decimals": 0,
+                "show": true,
+                "label": "",
+                "labelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "600",
+                  "lineHeight": "1"
+                },
+                "labelColor": "#9ca3af",
+                "position": "left",
+                "showTickLabels": true,
+                "tickLabelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "400",
+                  "lineHeight": "1"
+                },
+                "tickLabelColor": "#9ca3af",
+                "ticksFormatter": null,
+                "showTicks": true,
+                "ticksColor": "#1f2937",
+                "showLine": true,
+                "lineColor": "#1f2937",
+                "showSplitLines": true,
+                "splitLinesColor": "#1f2937",
+                "id": "default",
+                "order": 0
+              }
+            },
+            "noAggregationBarWidthSettings": {
+              "strategy": "group",
+              "groupWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              },
+              "barWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              }
+            },
+            "animation": {
+              "animation": true,
+              "animationThreshold": 2000,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut",
+              "animationDelay": 0,
+              "animationDurationUpdate": 300,
+              "animationEasingUpdate": "cubicOut",
+              "animationDelayUpdate": 0
+            },
+            "padding": "12px"
+          },
+          "title": "CIRCUIT POWER — 7 DAYS",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "titleStyle": null,
+          "mobileHeight": null,
+          "configMode": "basic",
+          "actions": {},
+          "showTitleIcon": false,
+          "titleIcon": "thermostat",
+          "iconColor": "#22d3ee",
+          "useDashboardTimewindow": false,
+          "titleFont": {
+            "size": 11,
+            "sizeUnit": "px",
+            "family": "Roboto",
+            "weight": "600",
+            "style": "normal",
+            "lineHeight": "16px"
+          },
+          "titleColor": "#9ca3af",
+          "titleTooltip": "",
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "widgetCss": "",
+          "pageSize": 1024,
+          "units": "W",
+          "decimals": 0,
+          "noDataDisplayMessage": "",
+          "margin": "0px",
+          "borderRadius": "0px",
+          "iconSize": "0px",
+          "timewindowStyle": {
+            "showIcon": false,
+            "iconSize": "24px",
+            "icon": null,
+            "iconPosition": "left",
+            "font": {
+              "size": 12,
+              "sizeUnit": "px",
+              "family": "Roboto",
+              "weight": "400",
+              "style": "normal",
+              "lineHeight": "16px"
+            },
+            "color": "#9ca3af",
+            "displayTypePrefix": true
+          },
+          "displayTimewindow": true,
+          "timewindow": {
+            "selectedTab": 1,
+            "history": {
+              "historyType": 0,
+              "timewindowMs": 604800000,
+              "interval": 3600000
+            },
+            "aggregation": {
+              "type": "AVG",
+              "limit": 25000
+            }
+          }
+        }
+      }
+    },
+    "states": {
+      "overview": {
+        "name": "Overview",
+        "root": true,
+        "layouts": {
+          "main": {
+            "widgets": {
+              "4f16e9cd-9139-5593-bffd-6258ca548441": {
+                "sizeX": 24,
+                "sizeY": 2,
+                "row": 0,
+                "col": 0
+              },
+              "235c6574-47dc-5fc4-9c4d-9fed75d7c4f2": {
+                "sizeX": 10,
+                "sizeY": 6,
+                "row": 2,
+                "col": 0
+              },
+              "eedf1ce7-938d-58ae-b425-98507c16348a": {
+                "sizeX": 7,
+                "sizeY": 6,
+                "row": 2,
+                "col": 10
+              },
+              "2223c29d-d6da-56b7-81c2-07506e8ea021": {
+                "sizeX": 7,
+                "sizeY": 6,
+                "row": 2,
+                "col": 17
+              },
+              "e6ba45a9-e994-5e7a-bd9e-a1a5d1e0176b": {
+                "sizeX": 7,
+                "sizeY": 6,
+                "row": 8,
+                "col": 0
+              },
+              "7d4af089-89f6-5194-a98b-dadde9b95a3d": {
+                "sizeX": 10,
+                "sizeY": 3,
+                "row": 8,
+                "col": 7
+              },
+              "608e0507-705d-52f8-a79a-03112c585b76": {
+                "sizeX": 10,
+                "sizeY": 3,
+                "row": 11,
+                "col": 7
+              },
+              "1478400a-43b7-5910-8ea4-a37f03418279": {
+                "sizeX": 7,
+                "sizeY": 6,
+                "row": 8,
+                "col": 17
+              },
+              "c1acde45-9378-5ab8-a004-84635dac232b": {
+                "sizeX": 8,
+                "sizeY": 7,
+                "row": 14,
+                "col": 0
+              },
+              "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba": {
+                "sizeX": 16,
+                "sizeY": 7,
+                "row": 14,
+                "col": 8
+              }
+            },
+            "gridSettings": {
+              "backgroundColor": "#0b1120",
+              "columns": 24,
+              "rowHeight": 50,
+              "margin": 10,
+              "outerMargin": true,
+              "layoutType": "default"
+            }
+          }
+        }
+      },
+      "analytics": {
+        "name": "Analytics",
+        "root": false,
+        "layouts": {
+          "main": {
+            "widgets": {
+              "39891c99-b0a3-5032-8a94-a9abe401d291": {
+                "sizeX": 24,
+                "sizeY": 2,
+                "row": 0,
+                "col": 0
+              },
+              "3c094d4e-72df-54c8-bb3e-acf067f383f1": {
+                "sizeX": 24,
+                "sizeY": 7,
+                "row": 2,
+                "col": 0
+              },
+              "4b9452d6-f4c6-55f2-88f4-8d063cb7458b": {
+                "sizeX": 12,
+                "sizeY": 7,
+                "row": 9,
+                "col": 0
+              },
+              "c8e3a069-5fac-55c4-8799-5900f4116b82": {
+                "sizeX": 12,
+                "sizeY": 7,
+                "row": 9,
+                "col": 12
+              },
+              "4751f877-9193-58d0-89a2-5923d29abce0": {
+                "sizeX": 24,
+                "sizeY": 6,
+                "row": 16,
+                "col": 0
+              }
+            },
+            "gridSettings": {
+              "backgroundColor": "#0b1120",
+              "columns": 24,
+              "rowHeight": 50,
+              "margin": 10,
+              "outerMargin": true,
+              "layoutType": "default"
+            }
+          }
+        }
+      },
+      "assets": {
+        "name": "Assets",
+        "root": false,
+        "layouts": {
+          "main": {
+            "widgets": {
+              "e7d0544e-7926-5bba-a904-2d88f5332b54": {
+                "sizeX": 24,
+                "sizeY": 2,
+                "row": 0,
+                "col": 0
+              },
+              "2a477d8b-d234-519c-a05b-862797167bf4": {
+                "sizeX": 24,
+                "sizeY": 12,
+                "row": 2,
+                "col": 0
+              },
+              "b406bf7e-f510-5526-8786-8f7a52536729": {
+                "sizeX": 24,
+                "sizeY": 8,
+                "row": 14,
+                "col": 0
+              }
+            },
+            "gridSettings": {
+              "backgroundColor": "#0b1120",
+              "columns": 24,
+              "rowHeight": 50,
+              "margin": 10,
+              "outerMargin": true,
+              "layoutType": "default"
+            }
+          }
+        }
+      }
+    },
+    "timewindow": {
+      "displayValue": "",
+      "selectedTab": 0,
+      "realtime": {
+        "realtimeType": 0,
+        "interval": 300000,
+        "timewindowMs": 86400000
+      },
+      "history": {
+        "historyType": 0,
+        "interval": 3600000,
+        "timewindowMs": 604800000
+      },
+      "aggregation": {
+        "type": "AVG",
+        "limit": 25000
+      }
+    },
+    "settings": {
+      "stateControllerId": "entity",
+      "showTitle": false,
+      "showDashboardsSelect": true,
+      "showEntitiesSelect": true,
+      "showDashboardTimewindow": true,
+      "toolbarAlwaysOpen": true,
+      "hideToolbar": false,
+      "showFilters": true,
+      "dashboardCss": "${FILE:theme.css}"
+    },
+    "filters": {}
+  }
+}
