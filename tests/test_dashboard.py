@@ -527,3 +527,30 @@ def test_templatize_cli_fails_on_a_missing_directory(tmp_path):
     export.write_text(json.dumps(rendered()), encoding="utf-8")
     with pytest.raises((TemplateError, SystemExit)):
         main(["templatize", str(export), "dev-1", "wx-1", "--files", str(tmp_path / "nope")])
+
+
+def test_templatize_cli_output_replaces_the_template_it_reads(tmp_path, capsys):
+    # The documented round trip reads dashboard.json (via --files) and writes it back:
+    # a shell redirect would truncate it first, --output replaces it only when done.
+    (tmp_path / "t").mkdir()
+    tdir = _dir(tmp_path / "t", _with_card(REFS), FILES)
+    export = tmp_path / "export.json"
+    export.write_text(json.dumps(_rendered_card("const lib = 1;\nreturn lib + 'á';")), encoding="utf-8")
+    target = tdir / "dashboard.json"
+    main(["templatize", str(export), "dev-1", "wx-1", "--files", str(tdir), "--output", str(target)])
+    assert capsys.readouterr().out == ""
+    got = json.loads(target.read_text(encoding="utf-8"))
+    assert got == _with_card(REFS)
+    assert target.read_text(encoding="utf-8").endswith("}\n")
+    assert sorted(p.name for p in tdir.iterdir()) == ["dashboard.json", "widgets"]  # no temp file left
+
+
+def test_templatize_cli_output_is_left_alone_when_templatize_fails(tmp_path):
+    target = tmp_path / "dashboard.json"
+    target.write_text("original", encoding="utf-8")
+    export = tmp_path / "export.json"
+    export.write_text(json.dumps({"title": "x", "configuration": {}}), encoding="utf-8")
+    with pytest.raises(TemplateError):
+        main(["templatize", str(export), "dev-1", "wx-1", "--output", str(target)])
+    assert target.read_text(encoding="utf-8") == "original"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["dashboard.json", "export.json"]

@@ -118,8 +118,15 @@ export back into the template with
 
 ```bash
 uv run python -m gate_cloud.dashboard templatize export.json <monitor-id> <weather-id> \
-  --files charts/gate-cloud/files/dashboard > charts/gate-cloud/files/dashboard/dashboard.json
+  --files charts/gate-cloud/files/dashboard \
+  --output charts/gate-cloud/files/dashboard/dashboard.json
 ```
+
+Use `--output`, not a shell redirect: `--files` reads `dashboard.json` to find
+the card files, and `> dashboard.json` would empty it before the command runs.
+`--output` writes a temporary file next to the target and renames it over the
+target once the template is complete, so a failed run leaves it unchanged.
+Without `--output` the template goes to stdout.
 
 `--files` puts each card script back as its `${FILE:...}` reference, so
 changes to a card's code belong in `widgets/`, not in the UI. Commit, then

@@ -28,8 +28,10 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import re
 import sys
+import tempfile
 import zlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -262,11 +264,13 @@ def unsupported(dashboard: dict) -> list[str]:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m gate_cloud.dashboard")
     sub = parser.add_subparsers(dest="command", required=True)
-    cmd = sub.add_parser("templatize", help="turn a dashboard export into a template on stdout")
+    cmd = sub.add_parser("templatize", help="turn a dashboard export into a template (stdout or --output)")
     cmd.add_argument("export")
     cmd.add_argument("monitor_id")
     cmd.add_argument("weather_id")
     cmd.add_argument("--files", metavar="DIR", help="template directory whose files are restored as ${FILE:...} references")
+    cmd.add_argument("--output", metavar="PATH",
+                     help="write the template to PATH (atomically, after it is built) instead of stdout")
     args = parser.parse_args(argv)
     files = None
     if args.files:
@@ -276,8 +280,27 @@ def main(argv: list[str] | None = None) -> None:
             parser.error(str(exc))
     with open(args.export, encoding="utf-8") as f:
         template = templatize(json.load(f), args.monitor_id, args.weather_id, files)
-    json.dump(template, sys.stdout, ensure_ascii=False, indent=2)
-    sys.stdout.write("\n")
+    text = json.dumps(template, ensure_ascii=False, indent=2) + "\n"
+    if args.output:
+        write_atomically(Path(args.output), text)
+    else:
+        sys.stdout.write(text)
+
+
+def write_atomically(path: Path, text: str) -> None:
+    """Write `text` to a temporary file next to `path`, then rename it over `path`.
+
+    `path` may be the dashboard.json that --files has just read: a shell redirect
+    would truncate it before the command runs, and a failed run would leave it half written.
+    """
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 if __name__ == "__main__":
