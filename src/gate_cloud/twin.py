@@ -219,3 +219,76 @@ def month_budget(energy_kwh: float | None, elapsed_days: int, days_in_month: int
         "month_budget_used_pct": round(100 * cost / monthly_budget, 1) if monthly_budget else None,
         "month_projected_cost_cad": round(cost * days_in_month / elapsed_days, 2),
     }
+
+
+def today_window(now: dt.datetime, tz: str = TIMEZONE) -> Window:
+    """Local midnight of `now`'s local date up to `now` floored to the minute.
+
+    `now` is passed in (never read here) so the window is reproducible.
+    """
+    local = now.astimezone(ZoneInfo(tz))
+    end = local.replace(second=0, microsecond=0)
+    start = local_day(local.date(), tz).start_ms
+    return Window(start, int(end.timestamp() * 1000))
+
+
+def same_time_yesterday(window: Window, tz: str = TIMEZONE) -> Window:
+    """The previous local day, from its midnight to the same local clock time.
+
+    Built from wall-clock dates, not `-86_400_000`: on a DST change the
+    previous day is 23 or 25 hours long and a fixed offset would drift.
+    """
+    zone = ZoneInfo(tz)
+    end = dt.datetime.fromtimestamp(window.end_ms / 1000, zone)
+    start = dt.datetime.fromtimestamp(window.start_ms / 1000, zone)
+    day = start.date() - dt.timedelta(days=1)
+    yesterday_end = dt.datetime.combine(day, end.time(), zone)
+    return Window(local_day(day, tz).start_ms, int(yesterday_end.timestamp() * 1000))
+
+
+def day_cost(energy_kwh: float | None, rate: RateD) -> float | None:
+    """One day's bill (fixed charge included); None when the energy is unknown."""
+    if energy_kwh is None:
+        return None
+    return rate.cost(energy_kwh, days=1, apply_fixed_charge=True)["total"]
+
+
+WEEKDAYS_ES = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
+
+
+def heatmap(hourly: Series, tz: str = TIMEZONE) -> dict:
+    """Mean kW per local weekday and hour from hourly average-power points (W).
+
+    Buckets use the local weekday and hour, so the pattern matches the
+    building's schedule across DST. An empty cell is None (unknown), not 0.
+    """
+    zone = ZoneInfo(tz)
+    cells: list[list[list[float]]] = [[[] for _ in range(24)] for _ in range(7)]
+    for ts, watts in hourly:
+        local = dt.datetime.fromtimestamp(ts / 1000, zone)
+        cells[local.weekday()][local.hour].append(watts)
+    return {
+        "unit": "kW",
+        "days": list(WEEKDAYS_ES),
+        "values": [[round(sum(c) / len(c) / 1000, 3) if c else None for c in row] for row in cells],
+        "samples": [[len(c) for c in row] for row in cells],
+    }
+
+
+def daily_scatter(days: list[tuple[dt.date, float | None, float | None]]) -> list[dict]:
+    """Energy against mean temperature, only for days where both are known.
+
+    A negative energy day comes from a counter reset or a backwards clamp and
+    is not a measurement, so it stays out.
+    """
+    return [
+        {"date": day.isoformat(), "kwh": kwh, "temp_mean_c": temp}
+        for day, kwh, temp in sorted(days, key=lambda d: d[0])
+        if kwh is not None and temp is not None and kwh >= 0
+    ]
+
+
+def month_extras(month_cost: float | None, elapsed_days: int, days_in_month: int) -> dict:
+    """Average daily cost so far (None if unknown) and days left (always known)."""
+    avg = round(month_cost / elapsed_days, 2) if month_cost is not None and elapsed_days > 0 else None
+    return {"month_avg_daily_cost_cad": avg, "month_days_left": days_in_month - elapsed_days}

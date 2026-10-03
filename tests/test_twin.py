@@ -1,5 +1,6 @@
 """Twin metrics are pure: synthetic series in, numbers out."""
 import datetime as dt
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -18,6 +19,9 @@ from gate_cloud.twin import (
     summary_attributes,
     weather_day,
 )
+from gate_cloud.twin import daily_scatter, day_cost, heatmap, month_extras, same_time_yesterday, today_window
+
+TZ = ZoneInfo("America/Toronto")
 
 MIN = 60_000
 HOUR = 3_600_000
@@ -201,3 +205,41 @@ def test_month_budget_without_energy_or_budget_is_unknown():
     assert set(month_budget(None, 10, 31, RateD(), 150.0).values()) == {None}
     b = month_budget(300.0, 10, 31, RateD(), None)
     assert b["month_budget_used_pct"] is None and b["month_cost_cad"] is not None
+
+
+def test_today_window_runs_from_local_midnight_to_now():
+    now = dt.datetime(2026, 10, 3, 9, 37, 20, tzinfo=TZ)
+    w = today_window(now)
+    assert w.start_ms == local_day(dt.date(2026, 10, 3)).start_ms
+    assert w.end_ms == int(dt.datetime(2026, 10, 3, 9, 37, tzinfo=TZ).timestamp() * 1000)
+
+
+def test_same_time_yesterday_respects_dst():
+    now = dt.datetime(2026, 11, 2, 10, 0, tzinfo=TZ)  # Nov 1 had 25 h
+    y = same_time_yesterday(today_window(now))
+    assert y.start_ms == local_day(dt.date(2026, 11, 1)).start_ms
+    assert y.end_ms == int(dt.datetime(2026, 11, 1, 10, 0, tzinfo=TZ).timestamp() * 1000)
+
+
+def test_day_cost():
+    assert day_cost(None, RateD()) is None
+    assert day_cost(20.0, RateD()) == RateD().cost(20.0, days=1, apply_fixed_charge=True)["total"]
+
+
+def test_heatmap_buckets_by_local_weekday_and_hour():
+    monday_8 = int(dt.datetime(2026, 9, 28, 8, 0, tzinfo=TZ).timestamp() * 1000)
+    week = 7 * 86_400_000
+    h = heatmap([(monday_8, 1000.0), (monday_8 + week, 3000.0)])
+    assert h["unit"] == "kW" and len(h["values"]) == 7 and len(h["values"][0]) == 24
+    assert h["values"][0][8] == 2.0 and h["samples"][0][8] == 2
+    assert h["values"][0][9] is None and h["values"][1][8] is None
+
+
+def test_daily_scatter_keeps_complete_non_negative_days():
+    rows = [(dt.date(2026, 8, 11), -3.1, 20.0), (dt.date(2026, 8, 10), 5.0, None), (dt.date(2026, 9, 1), 18.2, 14.5)]
+    assert daily_scatter(rows) == [{"date": "2026-09-01", "kwh": 18.2, "temp_mean_c": 14.5}]
+
+
+def test_month_extras():
+    assert month_extras(18.0, 2, 31) == {"month_avg_daily_cost_cad": 9.0, "month_days_left": 29}
+    assert month_extras(None, 0, 31) == {"month_avg_daily_cost_cad": None, "month_days_left": 31}
