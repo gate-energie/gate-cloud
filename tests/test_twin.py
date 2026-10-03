@@ -250,3 +250,11 @@ def test_empty_window_has_no_metrics():
     empty = Window(1_000_000, 1_000_000)
     assert circuit_metrics(empty, 60_000, CircuitInput([], None, 5.0, 5.0)) is None
     assert circuit_metrics(Window(2_000_000, 1_000_000), 60_000, CircuitInput([], None, 5.0, 6.0)) is None
+
+
+def test_a_flagged_main_aggregate_allocates_nothing():
+    main = metrics(50.0)
+    main.quality = "negative_power"
+    circuits = {"heating": metrics(30.0)}
+    assert allocate(circuits, main, RateD(), days=1) is None
+    assert circuits["heating"].cost_cad is None and circuits["heating"].energy_fraction_pct is None

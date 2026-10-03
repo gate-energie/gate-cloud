@@ -112,9 +112,10 @@ def allocate(circuits: dict[str, CircuitMetrics], main: CircuitMetrics | None, r
     Rate D's tier-1 threshold belongs to the building, so the bill is computed
     on main_total and each circuit pays the building's effective energy rate
     (taxes included). The fixed charge stays on the building. A flagged
-    circuit gets neither: its numbers are not a share of the building's.
+    circuit gets neither: its numbers are not a share of the building's. A
+    flagged aggregate has no usable bill or rate, so nothing is allocated.
     """
-    if main is None or main.energy_kwh <= 0:
+    if main is None or main.quality is not None or main.energy_kwh <= 0:
         return None
     bill = rate.cost(main.energy_kwh, days=days, apply_fixed_charge=True)
     energy_rate = bill["energy_cost"] * (1 + rate.tax_rate) / main.energy_kwh
