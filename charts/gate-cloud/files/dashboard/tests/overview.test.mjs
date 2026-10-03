@@ -71,6 +71,7 @@ const weather = real("weather", {
 });
 
 const cards = {
+  "kpi_strip.js": [monitor, building, weather],
   "power_flow.js": [monitorCircuits, real("building", { entityName: "GATE", entityType: "ASSET", today_energy_kwh: "12.4" })],
   "live_telemetry.js": [monitor, building],
   "grid_phases.js": [monitor, building],
@@ -387,6 +388,51 @@ test("data age: a muted updated line, stale past twice the cadence", () => {
   assert.match(renderCard("weather.js", cards["weather.js"], { now: NOW }), /gate-muted">updated 12:05</);
   assert.match(renderCard("budget.js", cards["budget.js"], { now: NOW }), /gate-muted">updated 22:00</);
   assert.match(renderCard("daily_bars.js", [{ ...building, analytics_daily: "[]" }], { now: NOW }), /No data yet[\s\S]*updated 22:00/);
+});
+
+test("kpi_strip: power now, today, the month against the budget and outside, without a card title", () => {
+  const out = renderCard("kpi_strip.js", cards["kpi_strip.js"], { now: NOW });
+  assert.match(out, /^<div class="gate-card gate-kpis">/);
+  assert.doesNotMatch(out, /gate-title/);
+  assert.equal(count(out, /class="gate-kpi /g), 4);
+  assert.match(out, /gate-kpi gate-energy[\s\S]*gate-kpi gate-energy[\s\S]*gate-kpi gate-cost[\s\S]*gate-kpi gate-weather/);
+  assert.match(out, /Power now<\/div><div class="gate-kpi-value">2\.50 <span class="gate-kpi-unit">kW<\/span>/);
+  assert.match(out, /Peak today 3\.10 kW/);
+  assert.match(out, /Today<\/div><div class="gate-kpi-value">12\.4 <span class="gate-kpi-unit">kWh<\/span><span class="gate-kpi-second">\$1\.85<\/span>/);
+  // Against yesterday up to the same time (10 kWh), not the whole of yesterday (60 kWh).
+  assert.match(out, /gate-delta gate-amber">▲ 24\.0 % vs yesterday/);
+  assert.match(out, /This month<\/div><div class="gate-kpi-value">\$60\.00 <span class="gate-kpi-unit">of \$150<\/span>/);
+  assert.match(out, /<div class="gate-bar"><span style="width:40%;background:#22c55e"><\/span><\/div>/);
+  assert.match(out, /Projected \$140\.00 · 40 % used/);
+  assert.match(out, /Outside<\/div><div class="gate-kpi-value">-1\.1 <span class="gate-kpi-unit">°C<\/span>/);
+  assert.match(out, /55 % RH · 2\.7 m\/s/);
+});
+
+test("kpi_strip: budget colour follows the month's use", () => {
+  const amber = renderCard("kpi_strip.js", [monitor, { ...building, month_budget_used_pct: "85" }, weather]);
+  assert.match(amber, /width:85%;background:#f59e0b/);
+  const over = renderCard("kpi_strip.js", [monitor, { ...building, month_budget_used_pct: "130" }, weather]);
+  assert.match(over, /width:100%;background:#ef4444/);
+  const down = renderCard("kpi_strip.js", [monitor, { ...building, today_energy_kwh: "8" }, weather]);
+  assert.match(down, /gate-delta gate-ok">▼ 20\.0 % vs yesterday/);
+  const same = renderCard("kpi_strip.js", [monitor, { ...building, today_energy_kwh: "10" }, weather]);
+  assert.match(same, /gate-delta gate-muted">0\.0 % vs yesterday/);
+});
+
+test("kpi_strip: today and the month listed as unknown render —, live values stay", () => {
+  const out = renderCard("kpi_strip.js", [monitor, { ...midnight, month_unknown: "month_cost_cad,month_budget_used_pct,month_projected_cost_cad" }, weather]);
+  assert.match(out, /Power now<\/div><div class="gate-kpi-value">2\.50/);
+  assert.match(out, /Peak today —/);
+  assert.match(out, /Today<\/div><div class="gate-kpi-value">—<span class="gate-kpi-second">—<\/span>/);
+  assert.match(out, /<span class="gate-delta">—<\/span>/);
+  assert.match(out, /This month<\/div><div class="gate-kpi-value">—<\/div><div class="gate-bar unknown">/);
+  assert.match(out, /Projected — · — used/);
+  assert.doesNotMatch(out, /12\.4|1\.85|\$60|3\.10/);
+});
+
+test("kpi_strip: without a budget the month shows its cost alone", () => {
+  const out = renderCard("kpi_strip.js", [monitor, { ...building, monthly_budget: "" }, weather]);
+  assert.match(out, /This month<\/div><div class="gate-kpi-value">\$60\.00<\/div>/);
 });
 
 test("power_flow: links carry the moving dash only while power flows; loads show their share", () => {

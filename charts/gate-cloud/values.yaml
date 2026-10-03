@@ -98,6 +98,7 @@ dagster:
                       - {key: widgets__daily_bars.js, path: dashboard/widgets/daily_bars.js}
                       - {key: widgets__grid_phases.js, path: dashboard/widgets/grid_phases.js}
                       - {key: widgets__heatmap.js, path: dashboard/widgets/heatmap.js}
+                      - {key: widgets__kpi_strip.js, path: dashboard/widgets/kpi_strip.js}
                       - {key: widgets__live_telemetry.js, path: dashboard/widgets/live_telemetry.js}
                       - {key: widgets__power_flow.js, path: dashboard/widgets/power_flow.js}
                       - {key: widgets__scatter.js, path: dashboard/widgets/scatter.js}
