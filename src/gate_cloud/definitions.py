@@ -17,6 +17,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+from pathlib import Path
 from zoneinfo import ZoneInfo
 from typing import Any
 
@@ -28,7 +29,8 @@ from gate_cloud.analytics import (
     read_input, read_metrics, read_peak, read_power, read_weather, usable_energy, usable_peak,
 )
 from gate_cloud.asset_model import CORE_PROFILES, apply_plan, build_plan
-from gate_cloud.dashboard import CircuitSeries, TemplateError, render, unsupported
+from gate_cloud.dashboard import (CircuitSeries, TemplateError, load_template, referenced_files, render,
+                                  unsupported)
 from gate_cloud.tariff import RateD
 from gate_cloud.thingsflow import ThingsFlow, entity_ref
 from gate_cloud.twin import (
@@ -80,19 +82,25 @@ class AssetModelFile(dg.ConfigurableResource):
 
 
 class DashboardFile(dg.ConfigurableResource):
-    """The dashboard template (charts/gate-cloud/files/dashboard.json). Empty path: not configured."""
+    """The dashboard template directory (charts/gate-cloud/files/dashboard): dashboard.json and
+    the files it references as ${FILE:...}. Empty path: not configured."""
 
     path: str = ""
 
     def load(self) -> dict[str, Any]:
         if not self.path:
             raise dg.Failure("GATE_DASHBOARD_PATH is not set")
-        with open(self.path, encoding="utf-8") as handle:
-            return json.load(handle)
+        try:
+            return load_template(Path(self.path))
+        except TemplateError as error:
+            raise dg.Failure(f"dashboard template: {error}") from error
 
     def digest(self) -> str:
-        with open(self.path, "rb") as handle:
-            return hashlib.sha256(handle.read()).hexdigest()
+        """Hash of dashboard.json and the files it references; tests and other files are left out."""
+        root = Path(self.path)
+        files = {"dashboard.json": (root / "dashboard.json").read_text(encoding="utf-8"),
+                 **referenced_files(root)}
+        return hashlib.sha256(json.dumps(files, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 @dg.asset(
@@ -229,7 +237,7 @@ def thingsflow_dashboard(
                          sorted({s.profile for s in branches}))
         except TemplateError as error:
             raise dg.Failure(f"dashboard template: {error}") from error
-        problems = unsupported(out, check_labels=False)  # legacy single-file template; drop with it (Task 7)
+        problems = unsupported(out)
         if problems:
             raise dg.Failure("dashboard uses what ThingsFlow cannot serve: " + "; ".join(problems))
         existing = session.dashboard(out["title"])
@@ -271,8 +279,8 @@ def asset_model_inputs_changed(
     if dashboard_file.path:
         try:
             template = dashboard_file.digest()
-        except OSError as error:
-            # Keep syncing the asset model; thingsflow_dashboard reports the missing file itself.
+        except (OSError, TemplateError) as error:
+            # Keep syncing the asset model; thingsflow_dashboard reports the broken template itself.
             context.log.warning(f"dashboard template {dashboard_file.path!r} is unreadable ({error}); left out of the digest")
     digest = hashlib.sha256(
         (asset_model_file.digest() + template + json.dumps(circuit_map, sort_keys=True)).encode("utf-8")

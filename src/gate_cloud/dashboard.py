@@ -226,7 +226,7 @@ def templatize(dashboard: dict, monitor_id: str, weather_id: str,
     return out
 
 
-def unsupported(dashboard: dict, check_labels: bool = True) -> list[str]:
+def unsupported(dashboard: dict) -> list[str]:
     config = dashboard.get("configuration", {})
     aliases = config.get("entityAliases", {})
     problems = []
@@ -250,7 +250,7 @@ def unsupported(dashboard: dict, check_labels: bool = True) -> list[str]:
                 if key.get("type") not in KEY_TYPES:
                     problems.append(f"widget {widget_id!r}: data key {name!r} has type {key.get('type')!r}, "
                                     "expected attribute, timeseries or entityField")
-                if check_labels and key.get("label") != name:
+                if key.get("label") != name:
                     problems.append(f"widget {widget_id!r}: data key {name!r} has label {key.get('label')!r}; "
                                     "label must equal name")
         text = json.dumps(widget.get("config", {}), ensure_ascii=False)

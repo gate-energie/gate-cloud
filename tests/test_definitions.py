@@ -1,6 +1,7 @@
 """The Dagster wiring: the asset materialises, the sensor fires only on change."""
 import datetime as dt
 import json
+import shutil
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -150,13 +151,13 @@ def test_every_schedule_starts_running():
         assert schedule.default_status == dg.DefaultScheduleStatus.RUNNING, schedule.name
 
 
-REAL_TEMPLATE = Path(__file__).parent.parent / "charts" / "gate-cloud" / "files" / "dashboard.json"
+TEMPLATE_DIR = Path(__file__).parent.parent / "charts" / "gate-cloud" / "files" / "dashboard"
 
 
 def dashboard_resources(tmp_path):
     res = weather_resources(tmp_path)
-    template = tmp_path / "dashboard.json"
-    template.write_text(REAL_TEMPLATE.read_text())
+    template = tmp_path / "dashboard"
+    shutil.copytree(TEMPLATE_DIR, template)
     res["dashboard_file"] = d.DashboardFile(path=str(template))
     dg.materialize([d.thingsflow_asset_model], resources=res)
     SHARED.ensure_device(d.WEATHER_DEVICE, "weather", "Weather")
@@ -167,22 +168,27 @@ def _action(result):
     return result.asset_materializations_for_node("thingsflow_dashboard")[0].metadata["action"].value
 
 
+def _template_json(res):
+    return Path(res["dashboard_file"].path) / "dashboard.json"
+
+
 def test_dashboard_is_created_then_left_alone_then_updated(tmp_path):
     res = dashboard_resources(tmp_path)
     first = dg.materialize([d.thingsflow_dashboard], resources=res)
     assert first.success and _action(first) == "created"
     assert SHARED.dashboard_writes == 1
-    dashboard_id, _ = SHARED.dashboard("GATE \u2014 Operaci\u00f3n")
+    dashboard_id, configuration = SHARED.dashboard("GATE \u2014 Operaci\u00f3n")
+    assert "${FILE:" not in json.dumps(configuration)
 
     second = dg.materialize([d.thingsflow_dashboard], resources=res)
     assert _action(second) == "unchanged" and SHARED.dashboard_writes == 1
 
-    template = json.loads(REAL_TEMPLATE.read_text())
-    template["configuration"]["settings"] = {**template["configuration"].get("settings", {}), "gateEdit": True}
-    Path(res["dashboard_file"].path).write_text(json.dumps(template))
+    widget = Path(res["dashboard_file"].path) / "widgets" / "power_flow.js"
+    widget.write_text(widget.read_text() + "\n// edited\n")
     third = dg.materialize([d.thingsflow_dashboard], resources=res)
     assert _action(third) == "updated" and SHARED.dashboard_writes == 2
     assert SHARED.dashboard("GATE \u2014 Operaci\u00f3n")[0] == dashboard_id
+    assert "// edited" in json.dumps(SHARED.dashboard("GATE \u2014 Operaci\u00f3n")[1])
 
 
 def test_dashboard_needs_the_weather_device(tmp_path):
@@ -200,10 +206,31 @@ def test_dashboard_needs_its_path(tmp_path):
         d.thingsflow_dashboard(res["thingsflow"], res["asset_model_file"], res["dashboard_file"])
 
 
+def test_dashboard_with_a_missing_directory_fails_cleanly(tmp_path):
+    res = dashboard_resources(tmp_path)
+    res["dashboard_file"] = d.DashboardFile(path=str(tmp_path / "missing"))
+    with pytest.raises(dg.Failure, match="dashboard template"):
+        d.thingsflow_dashboard(res["thingsflow"], res["asset_model_file"], res["dashboard_file"])
+    assert SHARED.dashboard_writes == 0
+
+
 def test_asset_model_sync_works_without_the_dashboard_path(tmp_path):
     res = resources(tmp_path, circuit_map("heating"))
     assert dg.materialize([d.thingsflow_asset_model], resources=res).success
     assert isinstance(d.asset_model_inputs_changed(dg.build_sensor_context(resources=res)), dg.RunRequest)
+
+
+def test_dashboard_digest_covers_dashboard_json_and_referenced_files_only(tmp_path):
+    shutil.copytree(TEMPLATE_DIR, tmp_path / "dashboard")
+    file = d.DashboardFile(path=str(tmp_path / "dashboard"))
+    first = file.digest()
+    assert file.digest() == first
+    (tmp_path / "dashboard" / "tests" / "lib.test.mjs").write_text("// not part of the template\n")
+    (tmp_path / "dashboard" / "notes.txt").write_text("unreferenced\n")
+    assert file.digest() == first
+    theme = tmp_path / "dashboard" / "theme.css"
+    theme.write_text(theme.read_text() + "\n")
+    assert file.digest() != first
 
 
 def test_sensor_run_key_follows_the_dashboard_template(tmp_path):
@@ -211,22 +238,37 @@ def test_sensor_run_key_follows_the_dashboard_template(tmp_path):
     first = d.asset_model_inputs_changed(dg.build_sensor_context(resources=res))
     same = d.asset_model_inputs_changed(dg.build_sensor_context(resources=res))
     assert first.run_key == same.run_key
-    Path(res["dashboard_file"].path).write_text(REAL_TEMPLATE.read_text() + "\n")
+    _template_json(res).write_text(_template_json(res).read_text() + "\n")
+    changed = d.asset_model_inputs_changed(dg.build_sensor_context(cursor=first.run_key, resources=res))
+    assert isinstance(changed, dg.RunRequest) and changed.run_key != first.run_key
+
+
+def test_sensor_run_key_follows_a_widget_file(tmp_path):
+    res = dashboard_resources(tmp_path)
+    first = d.asset_model_inputs_changed(dg.build_sensor_context(resources=res))
+    widget = Path(res["dashboard_file"].path) / "widgets" / "heatmap.js"
+    widget.write_text(widget.read_text() + "\n")
     changed = d.asset_model_inputs_changed(dg.build_sensor_context(cursor=first.run_key, resources=res))
     assert isinstance(changed, dg.RunRequest) and changed.run_key != first.run_key
 
 
 def test_sensor_skips_a_missing_dashboard_template_and_still_triggers(tmp_path):
     res = resources(tmp_path, circuit_map("heating"))
-    res["dashboard_file"] = d.DashboardFile(path=str(tmp_path / "missing.json"))
+    res["dashboard_file"] = d.DashboardFile(path=str(tmp_path / "missing"))
+    assert isinstance(d.asset_model_inputs_changed(dg.build_sensor_context(resources=res)), dg.RunRequest)
+
+
+def test_sensor_skips_a_broken_file_reference_and_still_triggers(tmp_path):
+    res = dashboard_resources(tmp_path)
+    (Path(res["dashboard_file"].path) / "widgets" / "heatmap.js").unlink()
     assert isinstance(d.asset_model_inputs_changed(dg.build_sensor_context(resources=res)), dg.RunRequest)
 
 
 def test_dashboard_template_errors_become_failures(tmp_path):
     res = dashboard_resources(tmp_path)
-    template = json.loads(REAL_TEMPLATE.read_text())
+    template = json.loads(_template_json(res).read_text())
     template["configuration"]["entityAliases"]["monitor"]["filter"]["singleEntity"]["id"] = "${UNKNOWN_ID}"
-    Path(res["dashboard_file"].path).write_text(json.dumps(template))
+    _template_json(res).write_text(json.dumps(template))
     with pytest.raises(dg.Failure, match="UNKNOWN_ID"):
         d.thingsflow_dashboard(res["thingsflow"], res["asset_model_file"], res["dashboard_file"])
     assert SHARED.dashboard_writes == 0
