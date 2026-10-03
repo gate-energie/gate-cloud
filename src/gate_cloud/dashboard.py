@@ -99,6 +99,10 @@ def render(template: dict, monitor_id: str, weather_id: str,
     names = [c.key for c in circuits]
     if len(set(names)) != len(names):
         raise TemplateError("duplicate circuit keys")
+    clash = sorted(n for n in names if n.startswith("main_"))
+    if clash:
+        # templatize tells circuit series from the main aggregate by this prefix
+        raise TemplateError(f"circuit keys must not start with 'main_': {', '.join(clash)}")
     palette = colours(names)
     keys = [_data_key(c, palette[c.key]) for c in sorted(circuits, key=lambda c: c.key)]
 

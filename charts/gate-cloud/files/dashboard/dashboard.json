@@ -179,7 +179,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/power_flow.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Power Flow",
           "showTitleIcon": false,
@@ -287,7 +287,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/live_telemetry.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Live Telemetry",
           "showTitleIcon": false,
@@ -404,7 +404,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/grid_phases.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Grid Phases",
           "showTitleIcon": false,
@@ -503,7 +503,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/today_energy.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Today Energy",
           "showTitleIcon": false,
@@ -540,7 +540,7 @@
                 {
                   "name": "main_total_active_power",
                   "type": "timeseries",
-                  "label": "main_total_active_power",
+                  "label": "Consumption",
                   "color": "#22d3ee",
                   "settings": {
                     "yAxisId": "default",
@@ -846,7 +846,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/daily_bars.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Daily Bars",
           "showTitleIcon": false,
@@ -928,7 +928,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/weather.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Weather",
           "showTitleIcon": false,
@@ -1046,7 +1046,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/budget.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Budget",
           "showTitleIcon": false,
@@ -1155,7 +1155,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/circuit_cost.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Circuit Cost",
           "showTitleIcon": false,
@@ -1255,7 +1255,7 @@
                 {
                   "name": "main_total_active_power",
                   "type": "timeseries",
-                  "label": "main_total_active_power",
+                  "label": "Total",
                   "color": "#22d3ee",
                   "settings": {
                     "yAxisId": "default",
@@ -1269,7 +1269,7 @@
                 {
                   "name": "main_phase_1_active_power",
                   "type": "timeseries",
-                  "label": "main_phase_1_active_power",
+                  "label": "Phase 1",
                   "color": "#3b82f6",
                   "settings": {
                     "yAxisId": "default",
@@ -1283,7 +1283,7 @@
                 {
                   "name": "main_phase_2_active_power",
                   "type": "timeseries",
-                  "label": "main_phase_2_active_power",
+                  "label": "Phase 2",
                   "color": "#f59e0b",
                   "settings": {
                     "yAxisId": "default",
@@ -1587,7 +1587,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/heatmap.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Heatmap",
           "showTitleIcon": false,
@@ -1642,7 +1642,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/scatter.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Scatter",
           "showTitleIcon": false,
@@ -1724,7 +1724,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/breakdown.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Breakdown",
           "showTitleIcon": false,
@@ -1950,7 +1950,7 @@
             "markdownTextPattern": "",
             "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/asset_cards.js}",
             "applyDefaultMarkdownStyle": false,
-            "markdownCss": ""
+            "markdownCss": "${FILE:theme.css}"
           },
           "title": "Asset Cards",
           "showTitleIcon": false,

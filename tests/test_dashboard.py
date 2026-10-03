@@ -282,13 +282,44 @@ def test_nav_cards_link_to_the_other_two_states():
             [("openDashboardState", s) for s in STATES if s != state]
 
 
-def test_every_template_data_key_label_equals_its_name():
-    for widget in RAW["configuration"]["widgets"].values():
+def test_card_and_type_alias_keys_have_label_equal_to_name():
+    """Cards read rows by label, and ThingsFlow type aliases need label == name; charts may name series."""
+    conf = RAW["configuration"]
+    aliases = {k: a["filter"]["type"] for k, a in conf["entityAliases"].items()}
+    for widget in conf["widgets"].values():
+        card = widget["typeFullFqn"] == "system.cards.markdown_card"
         for ds in widget["config"].get("datasources", []):
             keys = ds["dataKeys"] if isinstance(ds["dataKeys"], list) else []
             for key in keys:
-                if key != "${CIRCUIT_POWER_KEYS}":
+                if key != "${CIRCUIT_POWER_KEYS}" and (card or aliases[ds["entityAliasId"]] in ("assetType", "deviceType")):
                     assert key["label"] == key["name"], key
+
+
+def test_single_entity_chart_keys_have_human_labels():
+    conf = RAW["configuration"]
+    aliases = {k: a["filter"]["type"] for k, a in conf["entityAliases"].items()}
+    labels = {}
+    for widget in conf["widgets"].values():
+        if widget["typeFullFqn"] != "system.time_series_chart":
+            continue
+        for ds in widget["config"]["datasources"]:
+            assert aliases[ds["entityAliasId"]] == "singleEntity"
+            for key in ds["dataKeys"] if isinstance(ds["dataKeys"], list) else []:
+                assert key["label"] != key["name"], key
+                labels.setdefault(widget["config"]["title"], []).append(key["label"])
+    assert labels == {"CONSUMPTION — 24 HOURS (HOURLY kW)": ["Consumption"],
+                      "POWER TIMELINE — 7 DAYS": ["Total", "Phase 1", "Phase 2"]}
+
+
+def test_every_custom_card_also_carries_the_theme():
+    for widget in _card_widgets(RAW["configuration"]).values():
+        assert widget["config"]["settings"]["markdownCss"] == "${FILE:theme.css}"
+    assert RAW["configuration"]["settings"]["dashboardCss"] == "${FILE:theme.css}"
+
+
+def test_circuit_keys_must_not_look_like_main_aggregates():
+    with pytest.raises(TemplateError, match="main_"):
+        render(TEMPLATE, "dev-1", "wx-1", [CircuitSeries("main_total", "Main")], ["HVAC"])
 
 
 def test_each_card_has_the_keys_it_reads():
