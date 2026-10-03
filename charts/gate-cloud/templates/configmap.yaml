@@ -18,7 +18,7 @@ data:
   THINGSFLOW_URL: {{ .Values.thingsflow.url | quote }}
   GATE_MONITOR_DEVICE_ID: {{ .Values.monitorDeviceId | quote }}
   GATE_ASSET_MODEL_PATH: /etc/gate-cloud/asset_model.yaml
-  GATE_DASHBOARD_PATH: /etc/gate-cloud/dashboard.json
+  GATE_DASHBOARD_PATH: /etc/gate-cloud/dashboard
   THINGSFLOW_INGEST_URL: {{ .Values.thingsflow.ingestUrl | quote }}
   GATE_ASSET_HISTORY: {{ .Values.assetHistory | toString | quote }}
 ---
@@ -32,5 +32,22 @@ metadata:
 data:
   asset_model.yaml: |
 {{- default (.Files.Get "files/asset_model.yaml") .Values.assetModel | nindent 4 }}
-  dashboard.json: |
-{{- default (.Files.Get "files/dashboard.json") .Values.dashboard | nindent 4 }}
+---
+# The dashboard template directory, one key per file. Keys cannot hold "/":
+# widgets/power_flow.js is stored as widgets__power_flow.js and mounted back at
+# its path by the items in values.yaml (dagster-user-deployments volumes).
+# tests/ stays out of the chart's ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gate-cloud-dashboard
+  labels:
+    app.kubernetes.io/name: gate-cloud
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+{{- range $glob := list "files/dashboard/dashboard.json" "files/dashboard/theme.css" "files/dashboard/widgets/*.js" }}
+{{- range $path, $_ := $.Files.Glob $glob }}
+  {{ trimPrefix "files/dashboard/" $path | replace "/" "__" }}: |
+{{- $.Files.Get $path | nindent 4 }}
+{{- end }}
+{{- end }}

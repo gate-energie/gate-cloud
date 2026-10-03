@@ -29,9 +29,9 @@ monitorDeviceId: ""
 # override with --set-file assetModel=path/to/model.yaml for another site.
 assetModel: ""
 
-# The dashboard template. Defaults to files/dashboard.json in this chart;
-# override with --set-file dashboard=path/to/dashboard.json.
-dashboard: ""
+# The dashboard template ships with the chart: files/dashboard (dashboard.json,
+# theme.css, widgets/*.js) becomes the ConfigMap gate-cloud-dashboard. To change
+# it, edit those files and upgrade the release (README, "Changing the dashboard").
 
 networkPolicy:
   enabled: true
@@ -73,12 +73,38 @@ dagster:
           - name: gate-cloud-env
         envSecrets:
           - name: gate-cloud-thingsflow
+        # One projected volume at /etc/gate-cloud: asset_model.yaml and the
+        # dashboard directory (a second ConfigMap mounted inside a read-only
+        # ConfigMap volume would need a mountpoint the runtime cannot create).
+        # ConfigMap keys cannot hold "/", so the items put each flattened key
+        # back at its path. Adding a widget file means adding its item here
+        # (tests/test_chart.py checks the list against files/dashboard).
         volumes:
-          - name: asset-model
-            configMap:
-              name: gate-cloud-asset-model
+          - name: gate-cloud-files
+            projected:
+              sources:
+                - configMap:
+                    name: gate-cloud-asset-model
+                - configMap:
+                    name: gate-cloud-dashboard
+                    items:
+                      - {key: dashboard.json, path: dashboard/dashboard.json}
+                      - {key: theme.css, path: dashboard/theme.css}
+                      - {key: widgets___lib.js, path: dashboard/widgets/_lib.js}
+                      - {key: widgets__asset_cards.js, path: dashboard/widgets/asset_cards.js}
+                      - {key: widgets__breakdown.js, path: dashboard/widgets/breakdown.js}
+                      - {key: widgets__budget.js, path: dashboard/widgets/budget.js}
+                      - {key: widgets__circuit_cost.js, path: dashboard/widgets/circuit_cost.js}
+                      - {key: widgets__daily_bars.js, path: dashboard/widgets/daily_bars.js}
+                      - {key: widgets__grid_phases.js, path: dashboard/widgets/grid_phases.js}
+                      - {key: widgets__heatmap.js, path: dashboard/widgets/heatmap.js}
+                      - {key: widgets__live_telemetry.js, path: dashboard/widgets/live_telemetry.js}
+                      - {key: widgets__power_flow.js, path: dashboard/widgets/power_flow.js}
+                      - {key: widgets__scatter.js, path: dashboard/widgets/scatter.js}
+                      - {key: widgets__today_energy.js, path: dashboard/widgets/today_energy.js}
+                      - {key: widgets__weather.js, path: dashboard/widgets/weather.js}
         volumeMounts:
-          - name: asset-model
+          - name: gate-cloud-files
             mountPath: /etc/gate-cloud
             readOnly: true
         labels:

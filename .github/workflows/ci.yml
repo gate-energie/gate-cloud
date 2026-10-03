@@ -29,6 +29,8 @@ jobs:
           helm dependency build charts/gate-cloud
           helm lint charts/gate-cloud --set monitorDeviceId=ci --set dagster.postgresql.postgresqlPassword=ci
           helm template ci charts/gate-cloud --set monitorDeviceId=ci --set dagster.postgresql.postgresqlPassword=ci > /dev/null
+          # Now that the dependency is built, the rendered dashboard ConfigMap and mount are checked too.
+          uv run pytest -q tests/test_chart.py
 
   image:
     needs: test
