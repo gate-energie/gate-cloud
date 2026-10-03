@@ -106,8 +106,7 @@
 .gate-list-row:last-child { border-bottom: 0; }
 .gate-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .gate-stat { min-width: 0; background: var(--gate-bg); border: 1px solid var(--gate-hair); border-radius: 6px; padding: 6px 10px; }
-.gate-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--gate-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gate-stat-label { font-size: 10px; line-height: 1.25; text-transform: uppercase; letter-spacing: .08em; color: var(--gate-muted); }
 .gate-stat-value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .gate-stat-cost .gate-stat-value { color: var(--gate-cost); }
 
@@ -143,11 +142,13 @@
 }
 .gate-kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--gate-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gate-kpi-value { display: flex; align-items: baseline; gap: 0 8px; font-size: 24px; font-weight: 600; line-height: 1.15;
-  color: var(--gate-accent); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+/* Values and sub-lines wrap rather than clip, so a large amount never loses digits. */
+.gate-kpi-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; font-size: 24px; font-weight: 600; line-height: 1.15;
+  color: var(--gate-accent); font-variant-numeric: tabular-nums; }
+.gate-kpi-value > span { white-space: nowrap; }
 .gate-kpi-unit { margin-left: -4px; font-size: 13px; font-weight: 500; color: var(--gate-muted); }
 .gate-kpi-second { font-size: 15px; font-weight: 600; color: var(--gate-cost); }
-.gate-kpi-sub { font-size: 11px; color: var(--gate-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gate-kpi-sub { font-size: 11px; line-height: 1.3; color: var(--gate-muted); }
 .gate-kpi .gate-bar { height: 4px; margin: 2px 0 1px; }
 
 /* Power flow: grid -> building -> a bus with one branch per load.
@@ -178,7 +179,7 @@
 }
 .gate-flow-grid { border-color: rgba(59, 130, 246, .55); }
 .gate-flow-building { border-color: rgba(34, 211, 238, .55); }
-.gate-flow-source > .gate-flow-node { width: 116px; }
+.gate-flow-source > .gate-flow-node { width: clamp(88px, 8vw, 116px); padding: 8px 6px; }
 .gate-flow-name { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--gate-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gate-flow-value { font-size: 18px; font-weight: 600; color: var(--gate-energy); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -198,7 +199,7 @@
   padding: 5px 10px 6px;
   text-align: left;
 }
-.gate-flow-load .gate-flow-name { font-size: 11px; }
+.gate-flow-load .gate-flow-name { font-size: 11px; white-space: normal; }
 .gate-flow-load .gate-flow-value { font-size: 13px; color: var(--gate-text); }
 .gate-flow-share { grid-column: 1 / -1; height: 3px; margin-top: 4px; border-radius: 2px; background: var(--gate-border); overflow: hidden; }
 .gate-flow-share > span { display: block; height: 100%; border-radius: 2px; background: var(--gate-energy); opacity: .8; }
@@ -236,8 +237,12 @@
 .gate-hour-temp { font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* Budget ring and breakdown donut: a conic-gradient disc with a hole */
-.gate-budget { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px; align-items: center; }
-.gate-budget > .gate-delta { grid-column: 1 / -1; }
+/* The ring takes a share of the card (64-112 px) so the figures beside it always fit. */
+.gate-budget { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.gate-budget > .gate-ring { flex: 0 0 clamp(64px, 30%, 112px); width: auto; height: auto; aspect-ratio: 1; }
+.gate-budget > .gate-list { flex: 1 1 0; min-width: 0; }
+.gate-budget > .gate-delta { flex: 1 0 100%; }
+.gate-budget .gate-list-row > span { white-space: nowrap; }
 .gate-ring, .gate-donut {
   position: relative;
   display: flex;
@@ -259,6 +264,7 @@
   background: var(--gate-card);
 }
 .gate-ring-value, .gate-donut-value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gate-budget .gate-ring-value { font-size: 18px; }
 .gate-ring-sub { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--gate-muted); }
 .gate-breakdown { display: grid; grid-template-columns: auto minmax(180px, 240px) minmax(0, 1fr); gap: 12px 24px; align-items: center; }
 .gate-breakdown > .gate-donut { order: 1; }
@@ -286,10 +292,11 @@
 .gate-table-head { padding-top: 0; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--gate-muted); }
 .gate-table-total { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--gate-grey); }
 .gate-table-name { min-width: 0; display: flex; align-items: center; gap: 12px; }
-.gate-table-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gate-table-label { flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
 .gate-table-name > .gate-bar { flex: 1 0 48px; margin: 0; }
-.gate-table-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.gate-table-cell .gate-money::before { content: "·"; margin: 0 6px; color: var(--gate-faint); }
+/* kWh over $ in every cell at every width: two short lines never collide with the next column. */
+.gate-table-cell { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; line-height: 1.25;
+  text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gate-kwh { color: var(--gate-text); }
 .gate-money { color: var(--gate-cost); }
 
@@ -364,13 +371,9 @@
   .gate-table-head .gate-table-name { display: none; }
   .gate-table-name { grid-column: 1 / -1; gap: 10px; }
   .gate-table-label { font-weight: 500; }
-  .gate-table-cell { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.3; }
-  .gate-table-cell .gate-money::before { content: none; }
-  .gate-table-head .gate-table-cell { display: block; }
 
   .gate-breakdown { grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; }
   .gate-breakdown-bars { grid-column: 1 / -1; order: 3; grid-template-columns: minmax(0, 1fr); }
-  .gate-budget { gap: 4px 12px; }
   .gate-assets { grid-template-columns: minmax(0, 1fr); }
 }
 

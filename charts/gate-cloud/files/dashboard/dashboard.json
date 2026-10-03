@@ -627,7 +627,7 @@
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 12,
-        "sizeY": 9,
+        "sizeY": 14,
         "config": {
           "datasources": [
             {
@@ -1016,7 +1016,7 @@
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 6,
-        "sizeY": 5,
+        "sizeY": 6,
         "config": {
           "datasources": [
             {
@@ -1142,7 +1142,7 @@
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 6,
-        "sizeY": 4,
+        "sizeY": 5,
         "config": {
           "datasources": [
             {
@@ -1214,7 +1214,7 @@
         "id": "7d4af089-89f6-5194-a98b-dadde9b95a3d",
         "typeFullFqn": "system.time_series_chart",
         "type": "timeseries",
-        "sizeX": 24,
+        "sizeX": 12,
         "sizeY": 4,
         "config": {
           "datasources": [
@@ -2214,7 +2214,7 @@
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 24,
-        "sizeY": 4,
+        "sizeY": 5,
         "config": {
           "datasources": [
             {
@@ -3053,7 +3053,7 @@
               },
               "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba": {
                 "sizeX": 12,
-                "sizeY": 9,
+                "sizeY": 14,
                 "row": 7,
                 "col": 0,
                 "mobileOrder": 6,
@@ -3077,7 +3077,7 @@
               },
               "2223c29d-d6da-56b7-81c2-07506e8ea021": {
                 "sizeX": 6,
-                "sizeY": 5,
+                "sizeY": 6,
                 "row": 11,
                 "col": 12,
                 "mobileOrder": 11,
@@ -3085,17 +3085,17 @@
               },
               "608e0507-705d-52f8-a79a-03112c585b76": {
                 "sizeX": 6,
-                "sizeY": 4,
+                "sizeY": 5,
                 "row": 12,
                 "col": 18,
                 "mobileOrder": 8,
                 "mobileHeight": 4
               },
               "7d4af089-89f6-5194-a98b-dadde9b95a3d": {
-                "sizeX": 24,
+                "sizeX": 12,
                 "sizeY": 4,
-                "row": 16,
-                "col": 0,
+                "row": 17,
+                "col": 12,
                 "mobileOrder": 7,
                 "mobileHeight": 5
               }
@@ -3161,7 +3161,7 @@
               },
               "4751f877-9193-58d0-89a2-5923d29abce0": {
                 "sizeX": 24,
-                "sizeY": 4,
+                "sizeY": 5,
                 "row": 13,
                 "col": 0,
                 "mobileOrder": 6,

@@ -271,12 +271,12 @@ def _widget_name(conf, wid):
 LAYOUT = {
     "overview": {"nav": (7, 2, 0, 0, 1, 1), "kpi_strip": (17, 2, 7, 0, 2, 3),
                  "power_flow": (12, 5, 0, 2, 3, 6), "today_energy": (6, 5, 12, 2, 4, 5),
-                 "weather": (6, 5, 18, 2, 9, 5), "circuit_cost": (12, 9, 0, 7, 6, 19),
+                 "weather": (6, 5, 18, 2, 9, 5), "circuit_cost": (12, 14, 0, 7, 6, 19),
                  "live_telemetry": (6, 4, 12, 7, 10, 3), "budget": (6, 5, 18, 7, 5, 5),
-                 "grid_phases": (6, 5, 12, 11, 11, 5), "daily_bars": (6, 4, 18, 12, 8, 4),
-                 "chart": (24, 4, 0, 16, 7, 5)},
+                 "grid_phases": (6, 6, 12, 11, 11, 5), "daily_bars": (6, 5, 18, 12, 8, 4),
+                 "chart": (12, 4, 12, 17, 7, 5)},
     "analytics": {"nav": (7, 2, 0, 0, 1, 1), "kpi_strip": (17, 2, 7, 0, 2, 3), "chart": (16, 6, 0, 2, 3, 6),
-                  "scatter": (8, 6, 16, 2, 5, 5), "heatmap": (24, 5, 0, 8, 4, 5), "breakdown": (24, 4, 0, 13, 6, 12)},
+                  "scatter": (8, 6, 16, 2, 5, 5), "heatmap": (24, 5, 0, 8, 4, 5), "breakdown": (24, 5, 0, 13, 6, 12)},
     "assets": {"nav": (7, 2, 0, 0, 1, 1), "kpi_strip": (17, 2, 7, 0, 2, 3), "asset_cards": (24, 13, 0, 2, 4, 50),
                "chart": (24, 7, 0, 15, 3, 6)},
 }
@@ -632,3 +632,54 @@ def test_templatize_cli_output_is_left_alone_when_templatize_fails(tmp_path):
         main(["templatize", str(export), "dev-1", "wx-1", "--output", str(target)])
     assert target.read_text(encoding="utf-8") == "original"
     assert sorted(p.name for p in tmp_path.iterdir()) == ["dashboard.json", "export.json"]
+
+
+def _css_blocks():
+    """theme.css as (top-level text, {media query: block text}), comments removed."""
+    css = re.sub(r"/\*.*?\*/", "", (TEMPLATE_DIR / "theme.css").read_text(encoding="utf-8"), flags=re.S)
+    media, top, i = {}, [], 0
+    for m in re.finditer(r"@media([^{]*)\{", css):
+        if m.start() < i:
+            continue
+        depth, j = 1, m.end()
+        while depth:
+            depth += {"{": 1, "}": -1}.get(css[j], 0)
+            j += 1
+        top.append(css[i:m.start()])
+        media[m.group(1).strip()] = css[m.end():j - 1]
+        i = j
+    top.append(css[i:])
+    return "".join(top), media
+
+
+def _rule(css, selector):
+    match = re.search(r"(?:^|\})\s*" + re.escape(selector) + r"\s*\{([^}]*)\}", css)
+    assert match, selector
+    return match.group(1)
+
+
+def test_circuit_cost_cells_stack_kwh_over_cost_at_every_width():
+    """Wide desktop cells overlapped between 960 and ~1350 px: the cell structure must not hang on the phone query."""
+    top, media = _css_blocks()
+    cell = _rule(top, ".gate-table-cell")
+    assert "flex-direction: column" in cell and "display: flex" in cell
+    phone = media["(max-width: 959px)"]
+    assert "gate-table-cell" not in phone and "gate-money" not in phone and "gate-kwh" not in phone
+    assert "gate-money::before" not in top
+
+
+def test_budget_ring_shrinks_with_its_card():
+    top, _ = _css_blocks()
+    assert "display: flex" in _rule(top, ".gate-budget")
+    ring = _rule(top, ".gate-budget > .gate-ring")
+    assert re.search(r"flex: 0 0 clamp\(\d+px, \d+%, 112px\)", ring), ring
+    assert "aspect-ratio: 1" in ring
+
+
+def test_kpi_values_wrap_instead_of_clipping():
+    top, media = _css_blocks()
+    for selector in (".gate-kpi-value", ".gate-kpi-sub"):
+        rule = _rule(top, selector)
+        assert "overflow: hidden" not in rule and "nowrap" not in rule and "ellipsis" not in rule, selector
+    assert "flex-wrap: wrap" in _rule(top, ".gate-kpi-value")
+
