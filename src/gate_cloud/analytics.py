@@ -115,9 +115,22 @@ def usable_energy(m: CircuitMetrics | None) -> float | None:
     return m.energy_kwh
 
 
+def read_metrics(session, device, key: str, window: Window) -> CircuitMetrics | None:
+    """Metrics of `key` over `window` on 1-minute buckets (counter energy, integration fallback)."""
+    return circuit_metrics(window, MINUTE_MS, read_input(session, device, key, window))
+
+
 def read_energy(session, device, key: str, window: Window) -> float | None:
-    """Usable energy of `key` over `window` (counter, integration fallback)."""
-    return usable_energy(circuit_metrics(window, MINUTE_MS, read_input(session, device, key, window)))
+    """Usable energy of `key` over `window`."""
+    return usable_energy(read_metrics(session, device, key, window))
+
+
+def usable_peak(m: CircuitMetrics | None, peak: tuple[float | None, int | None]) -> tuple[float | None, int | None]:
+    """A peak is unknown when its series is quality-flagged or the maximum is negative."""
+    watts, _ = peak
+    if watts is None or watts < 0 or (m is not None and m.quality is not None):
+        return None, None
+    return peak
 
 
 def read_peak(session, device, key: str, window: Window) -> tuple[float | None, int | None]:

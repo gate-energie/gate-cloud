@@ -71,6 +71,9 @@ class CircuitMetrics:
 
 
 def circuit_metrics(window: Window, bucket_ms: int, data: CircuitInput) -> CircuitMetrics | None:
+    window_buckets = (window.end_ms - window.start_ms) // bucket_ms
+    if window_buckets <= 0:  # an empty window (today at 00:00) has nothing to measure
+        return None
     buckets = [w for ts, w in data.power if window.start_ms <= ts < window.end_ms]
     counted = (
         data.counter_start is not None
@@ -80,7 +83,6 @@ def circuit_metrics(window: Window, bucket_ms: int, data: CircuitInput) -> Circu
     if not buckets and not counted:
         return None
     bucket_hours = bucket_ms / 3_600_000
-    window_buckets = (window.end_ms - window.start_ms) // bucket_ms
     if counted:
         energy, source = data.counter_end - data.counter_start, "counter"
     else:

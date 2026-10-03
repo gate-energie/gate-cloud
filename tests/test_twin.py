@@ -243,3 +243,10 @@ def test_daily_scatter_keeps_complete_non_negative_days():
 def test_month_extras():
     assert month_extras(18.0, 2, 31) == {"month_avg_daily_cost_cad": 9.0, "month_days_left": 29}
     assert month_extras(None, 0, 31) == {"month_avg_daily_cost_cad": None, "month_days_left": 31}
+
+
+def test_empty_window_has_no_metrics():
+    # At 00:00 the today window is zero-length: no buckets to divide by.
+    empty = Window(1_000_000, 1_000_000)
+    assert circuit_metrics(empty, 60_000, CircuitInput([], None, 5.0, 5.0)) is None
+    assert circuit_metrics(Window(2_000_000, 1_000_000), 60_000, CircuitInput([], None, 5.0, 6.0)) is None

@@ -343,11 +343,17 @@ def test_today_snapshot_leaves_a_flagged_aggregate_unknown(tmp_path):
     res = weather_resources(tmp_path)
     dg.materialize([d.thingsflow_asset_model], resources=res)
     SHARED.series.clear()
-    SHARED.series[("dev-1", "main_total_active_power")] = [(t, -500.0) for t in range(TODAY.start_ms, NOON_MS, MIN)]
+    # Today: negative all morning but one positive spike, so the max is positive yet the aggregate is flagged.
+    SHARED.series[("dev-1", "main_total_active_power")] = (
+        [(t, -500.0) for t in range(DAY.start_ms, DAY.end_ms, MIN)]  # yesterday: negative max
+        + [(t, 3000.0 if t == TODAY.start_ms + 60 * MIN else -500.0) for t in range(TODAY.start_ms, NOON_MS, MIN)]
+    )
     SHARED.series[("dev-1", "heating_active_power")] = [(t, 1000.0) for t in range(TODAY.start_ms, NOON_MS, MIN)]
     assert dg.materialize([d.today_snapshot], resources=res, run_config=snapshot_config(NOON.isoformat())).success
     b = SHARED.attrs["asset-B"]
-    assert {"today_energy_kwh", "today_cost_cad"} <= set(b["today_unknown"].split(","))
+    assert {"today_energy_kwh", "today_cost_cad", "today_peak_w", "today_peak_at",
+            "yesterday_peak_w"} <= set(b["today_unknown"].split(","))
+    assert "today_peak_w" not in b and "yesterday_peak_w" not in b
     heating = SHARED.attrs["asset-heating"]
     assert heating["today_energy_kwh"] == 12.0
     assert heating["today_unknown"] == "today_cost_cad"
@@ -384,3 +390,67 @@ def test_summary_month_average_daily_cost(tmp_path):
     b = SHARED.attrs["asset-B"]
     assert b["month_avg_daily_cost_cad"] == b["month_cost_cad"]  # one elapsed day
     assert b["month_days_left"] == 30
+
+
+def test_today_snapshot_at_midnight_keeps_yesterday(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed_today()
+    windows = []
+    original = SHARED.timeseries
+
+    def timeseries(entity, keys, start_ms, end_ms, interval_ms=0, agg="NONE"):
+        windows.append((start_ms, end_ms))
+        return original(entity, keys, start_ms, end_ms, interval_ms, agg)
+
+    SHARED.timeseries = timeseries
+    result = dg.materialize([d.today_snapshot], resources=res,
+                            run_config=snapshot_config("2026-10-01T00:00:03-04:00"))
+    assert result.success
+    b = SHARED.attrs["asset-B"]
+    assert None not in b.values()
+    assert {"today_energy_kwh", "today_cost_cad", "today_peak_w", "today_peak_at",
+            "yesterday_same_time_kwh"} <= set(b["today_unknown"].split(","))
+    assert b["yesterday_energy_kwh"] == 48.0 and b["yesterday_peak_w"] == 2000.0
+    assert "today_cost_cad" in SHARED.attrs["asset-heating"]["today_unknown"].split(",")
+    assert windows and all(start < end for start, end in windows)  # no zero-length reads
+
+
+def test_naive_now_is_toronto_time(tmp_path, monkeypatch):
+    import time
+
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    try:
+        res = weather_resources(tmp_path)
+        dg.materialize([d.thingsflow_asset_model], resources=res)
+        seed_today()
+        assert dg.materialize([d.today_snapshot], resources=res,
+                              run_config=snapshot_config("2026-10-01T12:00:00")).success
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+    b = SHARED.attrs["asset-B"]
+    assert b["today_updated_at"] == NOON_MS and b["today_energy_kwh"] == 6.0
+
+
+def test_yesterday_same_time_comes_from_counters(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed_today()
+    yesterday_noon = int(dt.datetime(2026, 9, 30, 12, tzinfo=TORONTO).timestamp() * 1000)
+    counter = SHARED.series[("dev-1", "main_total_energy_in_kwh")]
+    SHARED.series[("dev-1", "main_total_energy_in_kwh")] = sorted(counter + [(yesterday_noon - MIN, 1030.0)])
+    assert dg.materialize([d.today_snapshot], resources=res, run_config=snapshot_config(NOON.isoformat())).success
+    assert SHARED.attrs["asset-B"]["yesterday_same_time_kwh"] == 30.0  # not the integrated 24.0
+
+
+def test_summary_skips_analytics_without_the_building(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed()
+    del SHARED.entities["B"]
+    calls = recorded_reads()
+    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    assert (("main_total_active_power",), 3_600_000, "AVG") not in calls
+    assert "analytics_scatter" not in SHARED.attrs.get("asset-B", {})

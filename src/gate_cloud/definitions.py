@@ -24,8 +24,8 @@ import dagster as dg
 import yaml
 
 from gate_cloud.analytics import (
-    MINUTE_MS, QUARTER_MS, main_key, measure, read_daily_energy, read_energy, read_hourly, read_input, read_peak,
-    read_power, read_weather, usable_energy,
+    MINUTE_MS, QUARTER_MS, DailyResult, circuits, main_key, measure, read_daily_energy, read_energy, read_hourly,
+    read_input, read_metrics, read_peak, read_power, read_weather, usable_energy, usable_peak,
 )
 from gate_cloud.asset_model import CORE_PROFILES, apply_plan, build_plan
 from gate_cloud.dashboard import CircuitSeries, TemplateError, render, unsupported
@@ -421,12 +421,13 @@ def asset_twin_summary(
         if energy_source is not None and budget["month_energy_kwh"] is not None:
             budget["month_energy_source"] = energy_source
         budget["month_updated_at"] = now_ms
-        analytics = _analytics(session, monitor, main_key(plan), weather_device, window, end_day)
-        analytics["analytics_updated_at"] = now_ms
+        analytics = {}
         building = session.assets().get(model["building"]["name"])
         if building is not None:
             ref = entity_ref("ASSET", building.id.id)
             session.save_attributes(ref, "SERVER_SCOPE", _known(budget, "month_unknown"))
+            analytics = _analytics(session, monitor, main_key(plan), weather_device, window, end_day)
+            analytics["analytics_updated_at"] = now_ms
             session.save_attributes(ref, "SERVER_SCOPE", _known(analytics, "analytics_unknown"))
     _warn_missing(context, result.missing_assets)
     return dg.MaterializeResult(metadata={
@@ -434,7 +435,7 @@ def asset_twin_summary(
         "circuits": len(result.circuits), "no_data": result.no_data,
         "missing_assets": result.missing_assets,
         "month_cost_cad": budget["month_cost_cad"], "month_budget_used_pct": budget["month_budget_used_pct"],
-        "scatter_days": len(analytics["analytics_scatter"]),
+        "scatter_days": len(analytics.get("analytics_scatter") or []),
     })
 
 
@@ -470,7 +471,12 @@ def today_snapshot(
 ) -> dg.MaterializeResult:
     model = asset_model_file.load()
     now = dt.datetime.fromisoformat(config.now) if config.now else dt.datetime.now(dt.timezone.utc)
+    if now.tzinfo is None:  # a naive time is the building's wall clock, not the server's
+        now = now.replace(tzinfo=ZoneInfo(TIMEZONE))
     today = today_window(now)
+    # At 00:00 today's window is empty: nothing is known about today yet, and
+    # nothing is read for it (nor for the equally empty same time yesterday).
+    started = today.end_ms > today.start_ms
     yesterday = local_day(dt.datetime.fromtimestamp(today.start_ms / 1000, ZoneInfo(TIMEZONE)).date() - dt.timedelta(days=1))
     with thingsflow.session() as session:
         plan, rate, monitor, _ = _context(session, thingsflow, model)
@@ -479,10 +485,17 @@ def today_snapshot(
         if building is None:
             raise dg.Failure(f"building {name!r} is not in ThingsFlow yet; materialise thingsflow_asset_model first")
         key = main_key(plan)
-        result = measure(session, monitor, plan, rate, today, days=1)
+        if started:
+            result = measure(session, monitor, plan, rate, today, days=1)
+            peak_w, peak_at = usable_peak(result.main, read_peak(session, monitor, key, today))
+            same_time = read_energy(session, monitor, key, same_time_yesterday(today))
+        else:
+            found, missing = circuits(session, plan)
+            result = DailyResult(found=found, missing_assets=missing)
+            peak_w, peak_at, same_time = None, None, None
         energy = usable_energy(result.main)
-        peak_w, peak_at = read_peak(session, monitor, key, today)
-        yesterday_energy = read_energy(session, monitor, key, yesterday)
+        before = read_metrics(session, monitor, key, yesterday)
+        yesterday_energy = usable_energy(before)
         attrs = {
             "today_energy_kwh": energy,
             "today_cost_cad": day_cost(energy, rate),
@@ -490,8 +503,8 @@ def today_snapshot(
             "today_peak_at": peak_at,
             "yesterday_energy_kwh": yesterday_energy,
             "yesterday_cost_cad": day_cost(yesterday_energy, rate),
-            "yesterday_peak_w": read_peak(session, monitor, key, yesterday)[0],
-            "yesterday_same_time_kwh": read_energy(session, monitor, key, same_time_yesterday(today)),
+            "yesterday_peak_w": usable_peak(before, read_peak(session, monitor, key, yesterday))[0],
+            "yesterday_same_time_kwh": same_time,
             "today_updated_at": int(now.timestamp() * 1000),
         }
         session.save_attributes(entity_ref("ASSET", building.id.id), "SERVER_SCOPE", _known(attrs, "today_unknown"))
