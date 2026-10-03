@@ -102,3 +102,11 @@ test("mean is null unless every value is known", () => {
   assert.equal(gate.mean([1]), 1);
   for (const bad of [["1", ""], [null, 2], [], null, undefined]) assert.equal(gate.mean(bad), null);
 });
+
+test("strength labels a correlation coefficient, null when unknown", () => {
+  assert.equal(gate.strength("-0.82"), "High");
+  assert.equal(gate.strength(0.45), "Moderate");
+  assert.equal(gate.strength("0.4"), "Low");
+  assert.equal(gate.strength(-0.1), "Low");
+  for (const bad of ["", null, undefined, "x"]) assert.equal(gate.strength(bad), null);
+});

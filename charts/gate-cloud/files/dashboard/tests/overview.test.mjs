@@ -1,30 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderCard as renderRaw } from "./harness.mjs";
+import { renderCard as renderRaw, real, blank, typed } from "./harness.mjs";
 
 // gate.fmt puts a thin space (U+2009) before units; assertions use a plain space.
 const renderCard = (file, data, ctx) => renderRaw(file, data, ctx).replace(/ /g, " ");
-
-// Fields ThingsBoard adds to every markdown row besides the data keys.
-const ENTITY = /^(\$datasource|entity[A-Z]\w*|deviceName|deviceType|aliasName|dsIndex|dsName)$|\|ts$/;
-const TS = 1759500000000;
-
-// A row the way ThingsBoard builds it: entity fields, datasource info and,
-// for every key, obj[label] = value and obj[label + "|ts"] = timestamp.
-const real = (dsName, row) => {
-  const out = {
-    $datasource: { name: dsName, entityName: row.entityName },
-    entityName: row.entityName, deviceName: row.entityName, entityId: "id-" + row.entityName,
-    entityType: row.entityType, entityLabel: "", entityDescription: "", aliasName: dsName,
-    dsIndex: 0, dsName, deviceType: null,
-  };
-  for (const [k, v] of Object.entries(row)) {
-    if (k === "entityName" || k === "entityType") continue;
-    out[k] = v;
-    out[k + "|ts"] = TS;
-  }
-  return out;
-};
 
 // 35 consecutive days ending 2026-10-02, with 2026-09-20 missing; the last day is 20 kWh.
 const dayIso = (offset) => new Date(Date.UTC(2026, 9, 2) - offset * 86400000).toISOString().slice(0, 10);
@@ -84,20 +63,6 @@ const weather = real("weather", {
   entityName: "GATE Weather", entityType: "DEVICE",
   temperature_c: "-1.1", humidity_pct: "55", wind_speed_ms: "2.7", forecast: JSON.stringify(forecast),
 });
-
-const blank = (rows) =>
-  rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, ENTITY.test(k) ? v : ""])));
-// Same data with JSON attributes as objects and numbers as numbers.
-const typed = (rows) =>
-  rows.map((r) =>
-    Object.fromEntries(
-      Object.entries(r).map(([k, v]) => {
-        if (ENTITY.test(k) || k === "label") return [k, v];
-        if (typeof v === "string" && /^[[{]/.test(v)) return [k, JSON.parse(v)];
-        return [k, v !== "" && !isNaN(Number(v)) ? Number(v) : v];
-      })
-    )
-  );
 
 const cards = {
   "power_flow.js": [monitorCircuits, real("building", { entityName: "GATE", entityType: "ASSET", today_energy_kwh: "12.4" })],

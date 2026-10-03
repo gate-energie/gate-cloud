@@ -60,3 +60,10 @@ gate.bar = function (fraction, color) {
   var pct = f === null ? 0 : Math.round(Math.min(1, Math.max(0, f)) * 100);
   return '<div class="' + cls + '"><span style="width:' + pct + "%;background:" + gate.esc(color) + '"></span></div>';
 };
+// Correlation strength of a coefficient r: |r| > 0.7 High, > 0.4 Moderate, else Low.
+gate.strength = function (r) {
+  var n = gate.num(r);
+  if (n === null) return null;
+  var a = Math.abs(n);
+  return a > 0.7 ? "High" : a > 0.4 ? "Moderate" : "Low";
+};
