@@ -161,18 +161,18 @@ test("live_telemetry: five labelled rows", () => {
   assert.match(out, /gate-title">LIVE TELEMETRY</);
   assert.equal(count(out, /class="gate-list-row"/g), 5);
   assert.match(out, /Real-time load<\/span><span class="gate-value">2500 W/);
-  assert.match(out, /Voltage<\/span><span class="gate-value">122\.0 V/);
+  assert.match(out, /Avg phase voltage<\/span><span class="gate-value">122\.0 V/);
   assert.match(out, /Current<\/span><span class="gate-value">20\.5 A/);
   assert.match(out, /Daily peak<\/span><span class="gate-value">3100 W/);
   assert.match(out, /Energy used<\/span><span class="gate-value">12\.4 kWh/);
   const one = renderCard("live_telemetry.js", [{ ...monitor, main_phase_2_voltage: "" }, building]);
-  assert.match(one, /Voltage<\/span><span class="gate-value">—/);
+  assert.match(one, /Avg phase voltage<\/span><span class="gate-value">—/);
 });
 
 test("grid_phases: totals, phases and balance", () => {
   const out = renderCard("grid_phases.js", cards["grid_phases.js"]);
   assert.match(out, /gate-title">GRID &amp; PHASES</);
-  assert.match(out, /Total voltage<\/div><div class="gate-stat-value">122\.0 V/);
+  assert.match(out, /Avg phase voltage<\/div><div class="gate-stat-value">122\.0 V/);
   assert.match(out, /Total current<\/div><div class="gate-stat-value">20\.5 A/);
   assert.match(out, /Today's peak<\/div><div class="gate-stat-value">3100 W/);
   assert.match(out, /Yesterday's peak<\/div><div class="gate-stat-value">2900 W/);
@@ -183,7 +183,7 @@ test("grid_phases: totals, phases and balance", () => {
   assert.match(out, /gate-badge gate-amber">IMBALANCED/);
   assert.match(out, /Spread<\/span><span class="gate-value">500 W/);
   const one = renderCard("grid_phases.js", [{ ...monitor, main_phase_1_voltage: "" }, building]);
-  assert.match(one, /Total voltage<\/div><div class="gate-stat-value">—/);
+  assert.match(one, /Avg phase voltage<\/div><div class="gate-stat-value">—/);
   const lost = renderCard("grid_phases.js", [{ ...monitor, main_phase_2_active_power: "" }, building]);
   assert.match(lost, /Spread<\/span><span class="gate-value">—/);
   const even = renderCard("grid_phases.js", [{ ...monitor, main_phase_2_active_power: "1400" }]);

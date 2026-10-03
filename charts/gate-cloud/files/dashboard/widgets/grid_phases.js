@@ -23,7 +23,7 @@ var badge = imbalance === null ? ""
   : imbalance < 20 ? '<span class="gate-badge gate-ok">BALANCED</span>'
   : '<span class="gate-badge gate-amber">IMBALANCED</span>';
 var html = '<div class="gate-stats">' +
-  stat("Total voltage", gate.fmt(voltage, 1, "V")) +
+  stat("Avg phase voltage", gate.fmt(voltage, 1, "V")) +
   stat("Total current", gate.fmt(monitor.main_total_current, 1, "A")) +
   stat("Today's peak", gate.fmt(gate.known(building, "today_peak_w", "today_unknown"), 0, "W")) +
   stat("Yesterday's peak", gate.fmt(gate.known(building, "yesterday_peak_w", "today_unknown"), 0, "W")) +

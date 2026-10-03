@@ -6,7 +6,7 @@ var building = gate.firstWithKey(data, "today_peak_w") || {};
 var voltage = gate.mean([monitor.main_phase_1_voltage, monitor.main_phase_2_voltage]);
 var rows = [
   ["Real-time load", gate.fmt(monitor.main_total_active_power, 0, "W")],
-  ["Voltage", gate.fmt(voltage, 1, "V")],
+  ["Avg phase voltage", gate.fmt(voltage, 1, "V")],
   ["Current", gate.fmt(monitor.main_total_current, 1, "A")],
   ["Daily peak", gate.fmt(gate.known(building, "today_peak_w", "today_unknown"), 0, "W")],
   ["Energy used", gate.fmt(gate.known(building, "today_energy_kwh", "today_unknown"), 1, "kWh")],
