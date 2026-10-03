@@ -105,6 +105,12 @@ against what ThingsFlow can serve. The card scripts output HTML and CSS only;
 their tests run with
 `node --test "charts/gate-cloud/files/dashboard/tests/*.test.mjs"`.
 
+Each card reads a group's `*_unknown` list next to its values and shows `—`
+for a listed key (`gate.known` in `_lib.js`), since the old value stays on the
+entity. Cards fed by a schedule end with "updated HH:MM" (America/Toronto),
+amber once older than twice the cadence: 30 min for `today_*`, 2 h for the
+forecast, 26 h for the nightly `month_*` and `analytics_*`.
+
 The chart ships the directory as the ConfigMap `gate-cloud-dashboard`
 (`dashboard.json`, `theme.css` and `widgets/*.js`; `tests/` stays out) and
 mounts it at `/etc/gate-cloud/dashboard`. A new widget file also needs its
