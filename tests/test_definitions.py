@@ -310,3 +310,10 @@ def test_weather_forecast_needs_the_weather_device(tmp_path):
 
 def test_known_lists_only_none_as_unknown():
     assert d._known({"a": "", "b": None, "c": 0}, "x_unknown") == {"a": "", "c": 0, "x_unknown": "b"}
+
+
+def test_nightly_analytics_is_named_for_gate_cloud():
+    # GATE's own nightly computation; the name must not suggest ThingsFlow does it.
+    keys = {key.to_user_string() for key in d.defs.resolve_asset_graph().get_all_asset_keys()}
+    assert "gate_nightly_analytics" in keys and "asset_twin_summary" not in keys
+    assert {s.name for s in d.defs.schedules} >= {"nightly_analytics_schedule"}

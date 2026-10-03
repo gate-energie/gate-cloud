@@ -79,9 +79,9 @@ def test_summary_writes_twin_attributes(tmp_path):
     dg.materialize([d.thingsflow_asset_model], resources=res)
     seed()
     result = dg.materialize(
-        [d.asset_twin_summary],
+        [d.gate_nightly_analytics],
         resources=res,
-        run_config={"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-01"}}}},
+        run_config={"ops": {"gate_nightly_analytics": {"config": {"end_date": "2026-10-01"}}}},
     )
     assert result.success
     attrs = SHARED.attrs["asset-heating"]
@@ -111,7 +111,7 @@ def test_daily_peak_late_in_the_local_day_is_kept(tmp_path):
     assert written("asset-heating")["max_power_w"] == 3500.0
 
 
-SUMMARY_CONFIG = {"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-01"}}}}
+SUMMARY_CONFIG = {"ops": {"gate_nightly_analytics": {"config": {"end_date": "2026-10-01"}}}}
 
 
 def recorded_reads():
@@ -135,7 +135,7 @@ def test_summary_utilization_counts_minutes_and_correlates_on_quarter_hours(tmp_
         (t, 1000.0 if (t - DAY.start_ms) // MIN % 15 < 5 else 0.0) for t in range(DAY.start_ms, DAY.end_ms, MIN)
     ]
     calls = recorded_reads()
-    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=SUMMARY_CONFIG).success
+    assert dg.materialize([d.gate_nightly_analytics], resources=res, run_config=SUMMARY_CONFIG).success
     attrs = SHARED.attrs["asset-heating"]
     assert attrs["twin_utilization_pct"] == 1.1  # 480 of 43 200 minutes
     assert attrs["twin_coverage_pct"] == 3.3  # 1 day of 30
@@ -196,9 +196,9 @@ def test_circuit_without_an_asset_is_skipped_and_reported(tmp_path):
     assert daily.success
     meta = daily.asset_materializations_for_node("circuit_daily_metrics")[0].metadata
     assert meta["missing_assets"].value == ["heating"]
-    summary = dg.materialize([d.asset_twin_summary], resources=res, run_config=SUMMARY_CONFIG)
+    summary = dg.materialize([d.gate_nightly_analytics], resources=res, run_config=SUMMARY_CONFIG)
     assert summary.success
-    meta = summary.asset_materializations_for_node("asset_twin_summary")[0].metadata
+    meta = summary.asset_materializations_for_node("gate_nightly_analytics")[0].metadata
     assert meta["missing_assets"].value == ["heating"]
     assert "twin_energy_kwh" not in SHARED.attrs["asset-heating"]
 
@@ -218,8 +218,8 @@ def test_summary_writes_month_budget_on_the_building(tmp_path):
     res = weather_resources(tmp_path)
     dg.materialize([d.thingsflow_asset_model], resources=res)
     seed()  # main_total counter 1000 -> 1048 on 2026-09-30
-    result = dg.materialize([d.asset_twin_summary], resources=res,
-                            run_config={"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-01"}}}})
+    result = dg.materialize([d.gate_nightly_analytics], resources=res,
+                            run_config={"ops": {"gate_nightly_analytics": {"config": {"end_date": "2026-10-01"}}}})
     assert result.success
     b = SHARED.attrs["asset-B"]
     assert None not in b.values()
@@ -233,8 +233,8 @@ def test_summary_month_budget_mid_month(tmp_path):
     dg.materialize([d.thingsflow_asset_model], resources=res)
     day = local_day(dt.date(2026, 10, 1))
     SHARED.series[("dev-1", "main_total_energy_in_kwh")] = [(day.start_ms - MIN, 1048.0), (day.end_ms - MIN, 1060.0)]
-    dg.materialize([d.asset_twin_summary], resources=res,
-                   run_config={"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-02"}}}})
+    dg.materialize([d.gate_nightly_analytics], resources=res,
+                   run_config={"ops": {"gate_nightly_analytics": {"config": {"end_date": "2026-10-02"}}}})
     b = SHARED.attrs["asset-B"]
     cost = RateD().cost(12.0, days=1, apply_fixed_charge=True)["total"]
     assert b["month_energy_kwh"] == 12.0 and b["month_cost_cad"] == cost
@@ -250,14 +250,14 @@ def _month_series(power_w=None, counter=(1048.0, 1060.0)):
         SHARED.series[("dev-1", "main_total_active_power")] = [(t, power_w) for t in range(day.start_ms, day.end_ms, MIN)]
 
 
-MONTH_CONFIG = {"ops": {"asset_twin_summary": {"config": {"end_date": "2026-10-02"}}}}
+MONTH_CONFIG = {"ops": {"gate_nightly_analytics": {"config": {"end_date": "2026-10-02"}}}}
 
 
 def test_flagged_negative_main_aggregate_leaves_the_month_unknown(tmp_path):
     res = weather_resources(tmp_path)
     dg.materialize([d.thingsflow_asset_model], resources=res)
     _month_series(power_w=-500.0, counter=(1060.0, 1048.0))  # counter went backwards, power is negative
-    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    assert dg.materialize([d.gate_nightly_analytics], resources=res, run_config=MONTH_CONFIG).success
     b = SHARED.attrs["asset-B"]
     assert not {"month_energy_kwh", "month_cost_cad", "month_projected_cost_cad", "month_energy_source"} & set(b)
     assert set(b["month_unknown"].split(",")) == {"month_energy_kwh", "month_cost_cad", "month_budget_used_pct",
@@ -270,7 +270,7 @@ def test_month_budget_percentage_end_to_end(tmp_path):
     model.write_text(model.read_text().replace("longitude: -72.58", 'longitude: -72.58, monthly_budget: "150"'))
     dg.materialize([d.thingsflow_asset_model], resources=res)
     _month_series()
-    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    assert dg.materialize([d.gate_nightly_analytics], resources=res, run_config=MONTH_CONFIG).success
     b = SHARED.attrs["asset-B"]
     cost = RateD().cost(12.0, days=1, apply_fixed_charge=True)["total"]
     assert b["month_cost_cad"] == cost
@@ -371,7 +371,7 @@ def test_summary_writes_nightly_analytics(tmp_path):
     weather = SHARED.ensure_device(d.WEATHER_DEVICE, "weather", "Weather")
     SHARED.series[(weather, "temperature_c")] = [(t, 4.0) for t in range(DAY.start_ms, DAY.end_ms, 3_600_000)]
     calls = recorded_reads()
-    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    assert dg.materialize([d.gate_nightly_analytics], resources=res, run_config=MONTH_CONFIG).success
     b = SHARED.attrs["asset-B"]
     assert None not in b.values()
     heat = b["analytics_heatmap"]
@@ -392,7 +392,7 @@ def test_summary_month_average_daily_cost(tmp_path):
     res = weather_resources(tmp_path)
     dg.materialize([d.thingsflow_asset_model], resources=res)
     _month_series()
-    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    assert dg.materialize([d.gate_nightly_analytics], resources=res, run_config=MONTH_CONFIG).success
     b = SHARED.attrs["asset-B"]
     assert b["month_avg_daily_cost_cad"] == b["month_cost_cad"]  # one elapsed day
     assert b["month_days_left"] == 30
@@ -457,7 +457,7 @@ def test_summary_skips_analytics_without_the_building(tmp_path):
     seed()
     del SHARED.entities["B"]
     calls = recorded_reads()
-    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    assert dg.materialize([d.gate_nightly_analytics], resources=res, run_config=MONTH_CONFIG).success
     assert (("main_total_active_power",), 3_600_000, "AVG") not in calls
     assert "analytics_scatter" not in SHARED.attrs.get("asset-B", {})
 
@@ -466,7 +466,7 @@ def test_daily_energy_does_not_need_weather(tmp_path):
     res = weather_resources(tmp_path)
     dg.materialize([d.thingsflow_asset_model], resources=res)
     seed()  # main_total counter 1000 -> 1048 on 2026-09-30, no weather at all
-    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    assert dg.materialize([d.gate_nightly_analytics], resources=res, run_config=MONTH_CONFIG).success
     b = SHARED.attrs["asset-B"]
     assert b["analytics_scatter"] == []
     assert b["analytics_daily"] == [{"date": "2026-09-30", "kwh": 48.0}]

@@ -383,9 +383,11 @@ class SummaryConfig(dg.Config):
 @dg.asset(
     group_name="twin",
     deps=[weather_observations, thingsflow_asset_model],
-    description="30-day twin summary per circuit, written as twin_* SERVER_SCOPE attributes.",
+    description="GATE's nightly analytics, computed here in gate-cloud and stored in ThingsFlow as "
+    "plain SERVER_SCOPE attributes: 30-day and 7-day figures per circuit (twin_*), month-to-date "
+    "budget and analytics series on the Building (month_*, analytics_*).",
 )
-def asset_twin_summary(
+def gate_nightly_analytics(
     context: dg.AssetExecutionContext, config: SummaryConfig, thingsflow: ThingsFlowResource,
     asset_model_file: AssetModelFile,
 ) -> dg.MaterializeResult:
@@ -542,20 +544,21 @@ daily_metrics_job = dg.define_asset_job("daily_metrics", selection=[circuit_dail
 daily_metrics_schedule = dg.build_schedule_from_partitioned_job(
     daily_metrics_job, hour_of_day=1, minute_of_hour=30, default_status=dg.DefaultScheduleStatus.RUNNING
 )
-twin_summary_job = dg.define_asset_job("twin_summary", selection=[asset_twin_summary])
-twin_summary_schedule = dg.ScheduleDefinition(
-    job=twin_summary_job, cron_schedule="45 1 * * *", execution_timezone=TIMEZONE,
+nightly_analytics_job = dg.define_asset_job("nightly_analytics", selection=[gate_nightly_analytics])
+nightly_analytics_schedule = dg.ScheduleDefinition(
+    name="nightly_analytics_schedule",
+    job=nightly_analytics_job, cron_schedule="45 1 * * *", execution_timezone=TIMEZONE,
     default_status=dg.DefaultScheduleStatus.RUNNING,
 )
 
 
 defs = dg.Definitions(
     assets=[thingsflow_asset_model, weather_observations, weather_forecast, thingsflow_dashboard,
-            circuit_daily_metrics, asset_twin_summary, today_snapshot],
-    jobs=[sync_asset_model_job, weather_job, weather_forecast_job, daily_metrics_job, twin_summary_job,
+            circuit_daily_metrics, gate_nightly_analytics, today_snapshot],
+    jobs=[sync_asset_model_job, weather_job, weather_forecast_job, daily_metrics_job, nightly_analytics_job,
           today_snapshot_job],
     schedules=[daily_asset_model_sync, hourly_weather_schedule, weather_forecast_schedule, daily_metrics_schedule,
-               twin_summary_schedule, today_snapshot_schedule],
+               nightly_analytics_schedule, today_snapshot_schedule],
     sensors=[asset_model_inputs_changed],
     resources={
         "thingsflow": ThingsFlowResource(

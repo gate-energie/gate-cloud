@@ -32,7 +32,7 @@ there.
 | asset `thingsflow_dashboard` | Renders the dashboard template with the circuits of the asset model and the weather device, and creates or updates `GATE — Operación` in ThingsFlow (no write when unchanged). Needs `weather_observations` to have run once | with the sync (on change, and daily) |
 | asset `weather_observations` | Hourly Open-Meteo weather at the building, ingested into the `GATE Weather` device | hourly, :10 |
 | asset `circuit_daily_metrics` | Per-circuit and building metrics for one local day (energy from the annual counter, cost at the building's Rate D, utilisation, coverage, degree days) | daily 01:30, backfillable |
-| asset `asset_twin_summary` | 30-day summary per circuit as `twin_*` attributes (energy, cost, fraction, correlation with temperature and humidity, overload against `rated_power_w`). Unknown values are not written; `twin_unknown` lists them, so a value left from an earlier window is not mistaken for a current one. Also `twin_7d_energy_kwh` and `twin_7d_cost_cad` per circuit, and on the Building the month (`month_*`) and the analytics (`analytics_*`) below | nightly 01:45 |
+| asset `gate_nightly_analytics` | 30-day summary per circuit as `twin_*` attributes (energy, cost, fraction, correlation with temperature and humidity, overload against `rated_power_w`). Unknown values are not written; `twin_unknown` lists them, so a value left from an earlier window is not mistaken for a current one. Also `twin_7d_energy_kwh` and `twin_7d_cost_cad` per circuit, and on the Building the month (`month_*`) and the analytics (`analytics_*`) below | nightly 01:45 |
 | asset `today_snapshot` | Today so far against yesterday, on the Building and each circuit, as `today_*` / `yesterday_*` attributes | every 15 min |
 | asset `weather_forecast` | Open-Meteo outlook (next 3 days, next 12 hours) as the `forecast` attribute of `GATE Weather` | hourly, :05 |
 
@@ -47,9 +47,9 @@ value from an earlier run is recognisable.
 |---|---|---|
 | Building | `today_energy_kwh`, `today_cost_cad`, `today_peak_w`, `today_peak_at`, `yesterday_energy_kwh`, `yesterday_cost_cad`, `yesterday_peak_w`, `yesterday_same_time_kwh`, `yesterday_same_time_cost_cad` (yesterday up to the same local time, priced like today), `today_updated_at`, `today_unknown` | `today_snapshot` |
 | circuit | `today_energy_kwh`, `today_cost_cad`, `today_unknown` | `today_snapshot` |
-| Building | `month_energy_kwh`, `month_energy_source`, `month_cost_cad`, `month_budget_used_pct`, `month_projected_cost_cad`, `month_avg_daily_cost_cad`, `month_days_left`, `month_updated_at`, `month_unknown` | `asset_twin_summary` |
-| Building | `analytics_heatmap` (weekday x hour mean power, last 30 days), `analytics_daily` (counter energy of each complete day since `HISTORY_START`, with or without weather), `analytics_scatter` (the same days' energy against mean temperature, for days that have one), `analytics_updated_at`, `analytics_unknown` | `asset_twin_summary` |
-| circuit | `twin_*` (30 days; `twin_quality` is `""` when not flagged), `twin_7d_energy_kwh`, `twin_7d_cost_cad`, `twin_updated_at`, `twin_unknown` | `asset_twin_summary` |
+| Building | `month_energy_kwh`, `month_energy_source`, `month_cost_cad`, `month_budget_used_pct`, `month_projected_cost_cad`, `month_avg_daily_cost_cad`, `month_days_left`, `month_updated_at`, `month_unknown` | `gate_nightly_analytics` |
+| Building | `analytics_heatmap` (weekday x hour mean power, last 30 days), `analytics_daily` (counter energy of each complete day since `HISTORY_START`, with or without weather), `analytics_scatter` (the same days' energy against mean temperature, for days that have one), `analytics_updated_at`, `analytics_unknown` | `gate_nightly_analytics` |
+| circuit | `twin_*` (30 days; `twin_quality` is `""` when not flagged), `twin_7d_energy_kwh`, `twin_7d_cost_cad`, `twin_updated_at`, `twin_unknown` | `gate_nightly_analytics` |
 | `GATE Weather` | `forecast` (JSON: `days`, `hours`), `forecast_updated_at`, `forecast_unknown` | `weather_forecast` |
 
 A main aggregate or circuit flagged `negative_power`, or with negative energy,
@@ -182,7 +182,7 @@ helm upgrade --install gate-cloud charts/gate-cloud -n gate \
 After the first install, backfill `weather_observations` from `HISTORY_START`
 (`src/gate_cloud/definitions.py`) to now in the UI; its single-run backfill
 policy fetches the whole range in one run. Then backfill
-`circuit_daily_metrics` over the same days. `asset_twin_summary` needs no
+`circuit_daily_metrics` over the same days. `gate_nightly_analytics` needs no
 backfill: it runs nightly by itself over the last 30 days.
 
 ### Upgrading from 0.3.0
@@ -196,8 +196,8 @@ backfill: it runs nightly by itself over the last 30 days.
   Do not override `dagster.dagster-user-deployments.deployments`: a list in
   values replaces the chart's list whole, dropping the env and volumes 0.4.0
   adds. Set only top-level values such as `monitorDeviceId` and `thingsflow.*`.
-- After the upgrade, materialise `asset_twin_summary` once in the UI
-  (Assets -> `asset_twin_summary` -> Materialize). Otherwise the Heatmap, the
+- After the upgrade, materialise `gate_nightly_analytics` once in the UI
+  (Assets -> `gate_nightly_analytics` -> Materialize). Otherwise the Heatmap, the
   Scatter, the 30-day bars and the 7-day columns stay empty until its nightly
   run at 01:45.
 

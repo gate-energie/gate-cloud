@@ -62,7 +62,7 @@ dagster:
       - name: gate-cloud
         image:
           repository: ghcr.io/gate-energie/gate-cloud
-          tag: "0.4.0"
+          tag: "0.4.1"
           pullPolicy: IfNotPresent
         dagsterApiGrpcArgs: ["--module-name", "gate_cloud.definitions"]
         port: 3030

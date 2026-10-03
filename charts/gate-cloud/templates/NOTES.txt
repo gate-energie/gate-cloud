@@ -14,11 +14,11 @@ to have run once. Its template is the ConfigMap gate-cloud-dashboard, mounted at
 
 Schedules, all on by default (America/Toronto): `today_snapshot` every 15 min,
 `weather_forecast` hourly at :05, `weather_observations` hourly at :10,
-`circuit_daily_metrics` daily at 01:30 and `asset_twin_summary` nightly at 01:45.
+`circuit_daily_metrics` daily at 01:30 and `gate_nightly_analytics` nightly at 01:45.
 
 After the first install, backfill `weather_observations` from HISTORY_START
 (one run: single-run backfill), then `circuit_daily_metrics` over the same
-days. `asset_twin_summary` runs nightly by itself and needs no backfill.
+days. `gate_nightly_analytics` runs nightly by itself and needs no backfill.
 
 Upgrading from 0.3.0:
   - do not use --reuse-values; pass your overrides again (monitorDeviceId, the same
@@ -26,7 +26,7 @@ Upgrading from 0.3.0:
   - check `helm get values {{ .Release.Name }} -n {{ .Release.Namespace }}` first and do not
     override dagster.dagster-user-deployments.deployments (a list replaces the chart's,
     dropping the dashboard volume and GATE_DASHBOARD_PATH);
-  - after the upgrade, materialise asset_twin_summary once (Assets -> asset_twin_summary
+  - after the upgrade, materialise gate_nightly_analytics once (Assets -> gate_nightly_analytics
     -> Materialize) so Heatmap, Scatter, the 30-day bars and the 7-day columns fill
     before its nightly run at 01:45.
 
