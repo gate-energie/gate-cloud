@@ -45,7 +45,9 @@ const building = real("building", {
   entityName: "GATE", entityType: "ASSET",
   today_energy_kwh: "12.4", today_peak_w: "3100", yesterday_peak_w: "2900", today_cost_cad: "1.85",
   yesterday_same_time_kwh: "10", monthly_budget: "150", month_cost_cad: "60", month_projected_cost_cad: "140",
-  month_budget_used_pct: "40", month_avg_daily_cost_cad: "2", month_days_left: "27", yesterday_cost_cad: "2.10",
+  month_budget_used_pct: "40", month_avg_daily_cost_cad: "2", month_days_left: "27",
+  // A whole day yesterday cost more than today so far; the same hours cost 2.10.
+  yesterday_cost_cad: "9.99", yesterday_energy_kwh: "60", yesterday_same_time_cost_cad: "2.10",
   analytics_scatter: JSON.stringify(scatter),
 });
 const circuit = (label, today, cost, d7, c7, d30, c30) => real("circuits", {
@@ -197,6 +199,8 @@ test("today_energy: kWh, cost, delta and top 3 circuits", () => {
   assert.match(out, /gate-big">12\.4 <span class="gate-unit">kWh/);
   assert.match(out, /\$1\.85/);
   assert.match(out, /gate-delta gate-amber">▲ 24\.0 %/);
+  // Against the same hours yesterday (10 kWh), not the whole day (60 kWh).
+  assert.match(out, /vs same time yesterday/);
   assert.equal(count(out, /class="gate-list-row"/g), 3);
   assert.match(out, /Heating<\/span><span class="gate-value">6\.0 kWh[\s\S]*Water Heater[\s\S]*Ventilation/);
   assert.doesNotMatch(out, /Lights/);
@@ -254,9 +258,11 @@ test("budget: ring colour and figures", () => {
     /Month total<\/span><span class="gate-value">\$60\.00/, /Avg daily<\/span><span class="gate-value">\$2\.00/,
     /Days left<\/span><span class="gate-value">27/, /Today's cost<\/span><span class="gate-value">\$1\.85/,
     /Remaining<\/span><span class="gate-value">\$90\.00/,
-    /gate-delta gate-ok">▼ \$0\.25 vs yesterday/]) assert.match(out, re);
-  const same = renderCard("budget.js", [{ ...building, yesterday_cost_cad: "1.85" }]);
-  assert.match(same, /gate-delta gate-muted">\$0\.00 vs yesterday/);
+    /gate-delta gate-ok">▼ \$0\.25 vs same time yesterday/]) assert.match(out, re);
+  const same = renderCard("budget.js", [{ ...building, yesterday_same_time_cost_cad: "1.85" }]);
+  assert.match(same, /gate-delta gate-muted">\$0\.00 vs same time yesterday/);
+  const before = renderCard("budget.js", [{ ...building, today_unknown: "yesterday_same_time_cost_cad" }]);
+  assert.match(before, /<span class="gate-delta">—<\/span>/);
   assert.doesNotMatch(same, /[▲▼]/);
   assert.match(renderCard("budget.js", [{ ...building, month_cost_cad: "" }]), /Remaining<\/span><span class="gate-value">—/);
   assert.match(renderCard("budget.js", [{ ...building, month_budget_used_pct: "85" }]), /conic-gradient\(#f59e0b 0% 85%/);

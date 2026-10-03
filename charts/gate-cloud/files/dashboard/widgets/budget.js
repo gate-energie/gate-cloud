@@ -1,7 +1,8 @@
 // MONTHLY BUDGET. Classes: gate-budget, gate-ring, gate-ring-inner, gate-ring-value, unknown,
 // gate-list, gate-list-row, gate-label, gate-value, gate-delta, gate-amber, gate-ok, gate-muted.
 // Building row: monthly_budget, month_cost_cad, month_projected_cost_cad, month_budget_used_pct,
-// month_avg_daily_cost_cad, month_days_left, month_unknown, today_cost_cad, yesterday_cost_cad, today_unknown.
+// month_avg_daily_cost_cad, month_days_left, month_unknown, today_cost_cad, yesterday_same_time_cost_cad, today_unknown.
+// Today so far is compared with yesterday up to the same local time, both priced as one day's bill.
 var b = gate.firstWithKey(data, "month_budget_used_pct") || {};
 var M = "month_unknown", T = "today_unknown";
 var month = function (key) { return gate.known(b, key, M); };
@@ -9,13 +10,13 @@ var used = gate.num(month("month_budget_used_pct"));
 var color = used === null ? "#1f2937" : used < 80 ? "#22c55e" : used < 100 ? "#f59e0b" : "#ef4444";
 var fill = used === null ? 0 : Math.min(100, Math.max(0, used));
 var today = gate.num(gate.known(b, "today_cost_cad", T));
-var yesterday = gate.num(gate.known(b, "yesterday_cost_cad", T));
+var yesterday = gate.num(gate.known(b, "yesterday_same_time_cost_cad", T));
 // Cents: a difference that rounds to $0.00 is neutral (no arrow, muted).
 var diff = today !== null && yesterday !== null ? Math.round((today - yesterday) * 100) / 100 : null;
 var diffHtml = diff === null ? '<span class="gate-delta">—</span>'
-  : diff === 0 ? '<span class="gate-delta gate-muted">' + gate.money(0) + " vs yesterday</span>"
+  : diff === 0 ? '<span class="gate-delta gate-muted">' + gate.money(0) + " vs same time yesterday</span>"
   : '<span class="gate-delta ' + (diff > 0 ? "gate-amber" : "gate-ok") + '">' + (diff > 0 ? "▲ " : "▼ ") +
-    gate.money(Math.abs(diff)) + " vs yesterday</span>";
+    gate.money(Math.abs(diff)) + " vs same time yesterday</span>";
 var budget = gate.num(b.monthly_budget);
 var spent = gate.num(month("month_cost_cad"));
 var remaining = budget !== null && spent !== null ? budget - spent : null;

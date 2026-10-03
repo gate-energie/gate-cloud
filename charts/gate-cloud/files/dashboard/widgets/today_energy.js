@@ -2,7 +2,8 @@
 // gate-stat-value, gate-delta, gate-amber, gate-ok, gate-subtitle, gate-list, gate-list-row,
 // gate-label, gate-value, gate-muted.
 // Building row: today_energy_kwh, today_cost_cad, yesterday_same_time_kwh, today_unknown;
-// circuit rows: label, today_energy_kwh, today_unknown.
+// circuit rows: label, today_energy_kwh, today_unknown. Today so far is compared with yesterday up to the
+// same local time (yesterday_same_time_kwh), not with the whole of yesterday.
 var building = gate.firstWithKey(data, "yesterday_same_time_kwh") || {};
 var T = "today_unknown";
 var today = gate.num(gate.known(building, "today_energy_kwh", T));
@@ -24,7 +25,7 @@ var stat = function (label, value) {
 };
 var html = '<div class="gate-big">' + gate.fmt(today, 1) + ' <span class="gate-unit">kWh</span></div>' +
   '<div class="gate-stats">' + stat("Cost", gate.money(gate.known(building, "today_cost_cad", T))) +
-  stat("vs yesterday", deltaHtml) + "</div>" +
+  stat("vs same time yesterday", deltaHtml) + "</div>" +
   '<div class="gate-subtitle">Top consumers (today)</div><div class="gate-list">' +
   (top.length ? top.map(function (c) {
     return '<div class="gate-list-row"><span class="gate-label">' + gate.esc(c.name) +
