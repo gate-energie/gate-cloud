@@ -57,3 +57,29 @@ export const typed = (rows) =>
       })
     )
   );
+
+// Attribute groups by key prefix and the attribute listing each group's unknown keys.
+const GROUPS = [["today_", "today_unknown"], ["yesterday_", "today_unknown"], ["month_", "month_unknown"],
+  ["twin_", "twin_unknown"], ["analytics_", "analytics_unknown"], ["forecast", "forecast_unknown"]];
+export const groupOf = (key) => {
+  if (ENTITY.test(key) || /_(unknown|updated_at)$/.test(key)) return null;
+  const hit = GROUPS.find(([prefix]) => key.startsWith(prefix));
+  return hit ? hit[1] : null;
+};
+
+// Every grouped value listed in its group's unknown list: `listed` keeps the old values
+// (stale on the entity), `blanked` empties them. A card honouring the lists renders both alike.
+export const staleAndBlank = (rows) => {
+  const listed = rows.map((r) => {
+    const out = { ...r };
+    const lists = {};
+    for (const k of Object.keys(r)) {
+      const g = groupOf(k);
+      if (g) (lists[g] = lists[g] || []).push(k);
+    }
+    for (const [g, keys] of Object.entries(lists)) out[g] = keys.join(",");
+    return out;
+  });
+  const blanked = listed.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, groupOf(k) ? "" : v])));
+  return { listed, blanked };
+};

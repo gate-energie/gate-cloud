@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderCard as renderRaw, real, blank, typed } from "./harness.mjs";
+import { renderCard as renderRaw, real, blank, typed, staleAndBlank } from "./harness.mjs";
 
 // gate.fmt puts a thin space (U+2009) before units; assertions use a plain space.
 const renderCard = (file, data, ctx) => renderRaw(file, data, ctx).replace(/ /g, " ");
@@ -85,6 +85,10 @@ for (const [file, data] of Object.entries(cards)) {
   });
   test(`${file}: JSON and numbers as strings or values give identical HTML`, () => {
     assert.equal(renderCard(file, typed(data), ctx), renderCard(file, data, ctx));
+  });
+  test(`${file}: values listed as unknown render like blank values`, () => {
+    const { listed, blanked } = staleAndBlank(data);
+    assert.equal(renderCard(file, listed, ctx), renderCard(file, blanked, ctx));
   });
   test(`${file}: missing data renders`, () => {
     renderCard(file, [], ctx);
@@ -277,4 +281,42 @@ test("weather: the current condition comes from the forecast hour closest to now
   assert.match(later, /gate-condition gate-condition-now">Rain</);
   const earlier = renderCard("weather.js", cards["weather.js"], { now: NOW - 3 * 3600000 });
   assert.match(earlier, /gate-condition gate-condition-now">Clear</);
+});
+
+// Just after midnight today_snapshot lists today's values as unknown; yesterday's stay on the Building.
+const TODAY_UNKNOWN = "today_cost_cad,today_energy_kwh,today_peak_at,today_peak_w,yesterday_same_time_cost_cad,yesterday_same_time_kwh";
+const midnight = { ...building, today_unknown: TODAY_UNKNOWN };
+const midnightCircuits = circuits.map((c) => ({ ...c, today_unknown: "today_cost_cad,today_energy_kwh" }));
+
+test("today at midnight: stale today values listed as unknown render —", () => {
+  const today = renderCard("today_energy.js", [midnight, ...midnightCircuits]);
+  assert.match(today, /gate-big">— <span class="gate-unit">kWh/);
+  assert.match(today, /Cost<\/div><div class="gate-stat-value">—/);
+  assert.match(today, /gate-stat-value"><span class="gate-delta">—/);
+  assert.doesNotMatch(today, /12\.4|1\.85|Heating/);
+  const live = renderCard("live_telemetry.js", [monitor, midnight]);
+  assert.match(live, /Daily peak<\/span><span class="gate-value">—/);
+  assert.match(live, /Energy used<\/span><span class="gate-value">—/);
+  const phases = renderCard("grid_phases.js", [monitor, midnight]);
+  assert.match(phases, /Today's peak<\/div><div class="gate-stat-value">—/);
+  assert.match(phases, /Yesterday's peak<\/div><div class="gate-stat-value">2900 W/);
+  const flow = renderCard("power_flow.js", [monitorCircuits, midnight], flowCtx);
+  assert.doesNotMatch(flow, /12\.4 kWh/);
+  const cost = renderCard("circuit_cost.js", midnightCircuits);
+  assert.match(cost, /Heating[\s\S]*?<div class="gate-table-cell">— · —<\/div><div class="gate-table-cell">40\.0 kWh · \$4\.00/);
+  const budget = renderCard("budget.js", [midnight]);
+  assert.match(budget, /Today's cost<\/span><span class="gate-value">—/);
+});
+
+test("month on the 1st: stale month values listed as unknown render —", () => {
+  const first = { ...building, month_days_left: "30",
+    month_unknown: "month_avg_daily_cost_cad,month_budget_used_pct,month_cost_cad,month_energy_kwh,month_projected_cost_cad" };
+  const out = renderCard("budget.js", [first]);
+  assert.match(out, /gate-ring unknown/);
+  assert.match(out, /gate-ring-value">—/);
+  for (const label of ["Remaining", "Projected", "Month total", "Avg daily"]) {
+    assert.match(out, new RegExp(`${label}</span><span class="gate-value">—`));
+  }
+  assert.match(out, /Budget<\/span><span class="gate-value">\$150\.00/);
+  assert.match(out, /Days left<\/span><span class="gate-value">30 days/);
 });

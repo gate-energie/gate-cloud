@@ -2,19 +2,21 @@
 // gate-breakdown-head, gate-bar (via gate.bar), gate-donut, unknown, gate-donut-inner, gate-donut-value,
 // gate-legend, gate-legend-item, gate-swatch, gate-label, gate-value, gate-muted.
 // Circuit rows: label, twin_energy_kwh (30 days), twin_energy_fraction_pct (share of the building),
-// twin_quality. A circuit flagged by quality, or with negative energy, is unknown.
+// twin_quality ("" when not flagged), twin_unknown. A circuit flagged by quality, or with negative energy, is unknown.
 // Donut: the top 6 circuits by kWh with a known share, then "Other + unmonitored" = the rest of the building.
 // Red stays reserved for alarms; the fourth slot is a neutral slate.
 var COLORS = ["#22d3ee", "#3b82f6", "#f59e0b", "#94a3b8", "#a855f7", "#22c55e"];
 var OTHER = "#4b5563";
 var items = gate.withKey(data, "twin_energy_kwh").map(function (r) {
-  var flagged = r.twin_quality !== null && r.twin_quality !== undefined && r.twin_quality !== "";
-  var kwh = flagged ? null : gate.num(r.twin_energy_kwh);
+  var twin = function (key) { return gate.known(r, key, "twin_unknown"); };
+  var quality = twin("twin_quality");
+  var flagged = quality !== null && quality !== undefined && quality !== "";
+  var kwh = flagged ? null : gate.num(twin("twin_energy_kwh"));
   if (kwh !== null && kwh < 0) kwh = null;
   return {
     name: r.label || r.entityLabel || r.entityName,
     kwh: kwh,
-    pct: kwh === null ? null : gate.num(r.twin_energy_fraction_pct),
+    pct: kwh === null ? null : gate.num(twin("twin_energy_fraction_pct")),
   };
 }).sort(function (a, b) {
   if (a.kwh === null || b.kwh === null) return a.kwh === null ? (b.kwh === null ? 0 : 1) : -1;

@@ -3,9 +3,9 @@
 // gate-label, gate-value, gate-muted.
 // .gate-dot and .gate-trend are absolutely positioned inside .gate-scatter-plot (a 2:1 box):
 // dot left = temperature, bottom = kWh; the trend is a thin div rotated about its left end.
-// Building row: analytics_scatter (JSON list of {date, kwh, temp_mean_c}, one point per day).
+// Building row: analytics_scatter (JSON list of {date, kwh, temp_mean_c}, one point per day), analytics_unknown.
 var building = gate.firstWithKey(data, "analytics_scatter") || {};
-var raw = gate.json(building.analytics_scatter);
+var raw = gate.json(gate.known(building, "analytics_scatter", "analytics_unknown"));
 var points = (Array.isArray(raw) ? raw : []).map(function (p) {
   return p && typeof p === "object" ? { date: p.date, x: gate.num(p.temp_mean_c), y: gate.num(p.kwh) } : null;
 }).filter(function (p) { return p && p.x !== null && p.y !== null; });

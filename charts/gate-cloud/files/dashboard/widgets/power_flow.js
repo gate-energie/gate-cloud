@@ -5,7 +5,7 @@
 // the monitor row (first with main_total_active_power) holds their live W by label.
 // Without ctx.datasources, every numeric data key of the monitor row is a circuit
 // (ThingsBoard also adds entity fields, $datasource and "<label>|ts" timestamps).
-// Building row: today_energy_kwh.
+// Building row: today_energy_kwh, today_unknown.
 var monitor = gate.firstWithKey(data, "main_total_active_power") || {};
 var building = gate.firstWithKey(data, "today_energy_kwh") || {};
 var TOTAL = "main_total_active_power";
@@ -31,7 +31,7 @@ var shownKnown = loads.every(function (l) { return l.w !== null; });
 var other = total === null || !shownKnown ? null
   : Math.max(0, total - loads.reduce(function (s, l) { return s + l.w; }, 0));
 loads.push({ name: "Other loads", w: other });
-var energy = gate.fmt(building.today_energy_kwh, 1, "kWh");
+var energy = gate.fmt(gate.known(building, "today_energy_kwh", "today_unknown"), 1, "kWh");
 var node = function (cls, name, value, sub) {
   return '<div class="gate-flow-node ' + cls + '"><div class="gate-flow-name">' + gate.esc(name) +
     '</div><div class="gate-flow-value">' + value + "</div>" +

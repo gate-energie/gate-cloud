@@ -143,19 +143,21 @@ CARD_KEYS = {
                                                          "main_phase_1_voltage", "main_phase_2_voltage",
                                                          "main_total_current")}
     | {(BUILDING, k, "attribute") for k in ("today_peak_w", "yesterday_peak_w")},
-    "today_energy": {(BUILDING, k, "attribute") for k in ("today_energy_kwh", "today_cost_cad", "yesterday_same_time_kwh")}
+    "today_energy": {(BUILDING, k, "attribute") for k in ("today_energy_kwh", "today_cost_cad", "yesterday_same_time_kwh",
+                                                          "today_updated_at")}
     | {(CIRC, "label", "entityField"), (CIRC, "today_energy_kwh", "attribute")},
-    "daily_bars": {(BUILDING, "analytics_scatter", "attribute")},
+    "daily_bars": {(BUILDING, "analytics_daily", "attribute"), (BUILDING, "analytics_updated_at", "attribute")},
     "weather": {(WEATHER, k, "timeseries") for k in ("temperature_c", "humidity_pct", "wind_speed_ms")}
-    | {(WEATHER, "forecast", "attribute")},
+    | {(WEATHER, "forecast", "attribute"), (WEATHER, "forecast_updated_at", "attribute")},
     "budget": {(BUILDING, k, "attribute") for k in ("monthly_budget", "month_cost_cad", "month_projected_cost_cad",
                                                     "month_budget_used_pct", "month_avg_daily_cost_cad",
-                                                    "month_days_left", "today_cost_cad", "yesterday_cost_cad")},
+                                                    "month_days_left", "today_cost_cad", "yesterday_same_time_cost_cad",
+                                                    "month_updated_at")},
     "circuit_cost": {(CIRC, "label", "entityField")}
     | {(CIRC, k, "attribute") for k in ("today_energy_kwh", "today_cost_cad", "twin_7d_energy_kwh", "twin_7d_cost_cad",
                                         "twin_energy_kwh", "twin_cost_cad")},
-    "heatmap": {(BUILDING, "analytics_heatmap", "attribute")},
-    "scatter": {(BUILDING, "analytics_scatter", "attribute")},
+    "heatmap": {(BUILDING, "analytics_heatmap", "attribute"), (BUILDING, "analytics_updated_at", "attribute")},
+    "scatter": {(BUILDING, "analytics_scatter", "attribute"), (BUILDING, "analytics_updated_at", "attribute")},
     "breakdown": {(CIRC, "label", "entityField")}
     | {(CIRC, k, "attribute") for k in ("twin_energy_kwh", "twin_energy_fraction_pct", "twin_quality")},
     "asset_cards": {(CIRC, "label", "entityField"), (CIRC, "type", "entityField")}
@@ -329,6 +331,25 @@ def test_each_card_has_the_keys_it_reads():
                 for k in (ds["dataKeys"] if isinstance(ds["dataKeys"], list) else []) if isinstance(k, dict)}
         assert CARD_KEYS[name] <= have, (name, CARD_KEYS[name] - have)
         assert {a for a, *_ in have} == {a for a, *_ in CARD_KEYS[name]}, name
+
+
+# Attribute groups gate-cloud writes, by key prefix, and the attribute listing each group's unknowns.
+UNKNOWN_GROUPS = {"today_": "today_unknown", "yesterday_": "today_unknown", "month_": "month_unknown",
+                  "twin_": "twin_unknown", "analytics_": "analytics_unknown", "forecast": "forecast_unknown"}
+
+
+def test_each_datasource_reading_a_group_reads_its_unknown_list():
+    for name, widget in _card_widgets(RAW["configuration"]).items():
+        for ds in widget["config"]["datasources"]:
+            if ds["entityAliasId"] not in (BUILDING, CIRC, WEATHER):
+                continue
+            keys = {k["name"]: k for k in ds["dataKeys"]}
+            for key in keys:
+                group = next((u for p, u in UNKNOWN_GROUPS.items() if key.startswith(p) and key != u), None)
+                if group is None:
+                    continue
+                assert group in keys, (name, ds["entityAliasId"], key, group)
+                assert keys[group]["type"] == "attribute" and keys[group]["label"] == group, (name, group)
 
 
 def test_power_flow_reads_total_and_circuits_in_one_monitor_row():

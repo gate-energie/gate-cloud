@@ -1,8 +1,9 @@
 // WEATHER OUTLOOK. Classes: gate-big, gate-condition, gate-condition-now, gate-list, gate-list-row, gate-label,
 // gate-value, gate-subtitle, gate-tiles, gate-tile, gate-tile-date, gate-tile-range, gate-muted.
-// Weather row: temperature_c, humidity_pct, wind_speed_ms, forecast (JSON {days, hours}).
+// Weather row: temperature_c, humidity_pct, wind_speed_ms (time series), forecast (JSON {days, hours}),
+// forecast_unknown.
 var weather = gate.firstWithKey(data, "temperature_c") || {};
-var forecast = gate.json(weather.forecast) || {};
+var forecast = gate.json(gate.known(weather, "forecast", "forecast_unknown")) || {};
 var days = Array.isArray(forecast.days) ? forecast.days.slice(0, 3) : [];
 var hours = Array.isArray(forecast.hours) ? forecast.hours : [];
 var condition = function (raw) {

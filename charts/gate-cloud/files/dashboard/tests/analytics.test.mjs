@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderCard as renderRaw, real, blank, typed } from "./harness.mjs";
+import { renderCard as renderRaw, real, blank, typed, staleAndBlank } from "./harness.mjs";
 
 // gate.fmt puts a thin space (U+2009) before units; assertions use a plain space.
 const renderCard = (file, data, ctx) => renderRaw(file, data, ctx).replace(/\u2009/g, " ");
@@ -73,6 +73,10 @@ for (const [file, data] of Object.entries(cards)) {
   });
   test(`${file}: JSON and numbers as strings or values give identical HTML`, () => {
     assert.equal(renderCard(file, typed(data)), renderCard(file, data));
+  });
+  test(`${file}: values listed as unknown render like blank values`, () => {
+    const { listed, blanked } = staleAndBlank(data);
+    assert.equal(renderCard(file, listed), renderCard(file, blanked));
   });
   test(`${file}: missing data renders`, () => {
     assert.match(renderCard(file, []), /—/);
@@ -210,4 +214,20 @@ test("asset_cards: names and types from data are escaped", () => {
   const out = renderCard("asset_cards.js", [{ ...assetRows[0], label: "<b>x</b>", type: "<i>t</i>", twin_quality: "<s>" }]);
   assert.doesNotMatch(out, /<b>|<i>|<s>/);
   assert.match(out, /&lt;b&gt;x&lt;\/b&gt;/);
+});
+
+test("a stale twin_quality listed as unknown is no flag; \"\" is no flag either", () => {
+  const solar = { ...assetRows[2], twin_energy_kwh: "5", twin_cost_cad: "0.5", twin_energy_fraction_pct: "1",
+    twin_unknown: "twin_corr_humidity,twin_corr_temperature,twin_quality" };
+  for (const row of [solar, { ...solar, twin_quality: "", twin_unknown: "" }]) {
+    const out = renderCard("asset_cards.js", [row]);
+    assert.doesNotMatch(out, /NEGATIVE POWER/);
+    assert.match(out, /30 days<\/span><span class="gate-value">5\.0 kWh/);
+    assert.match(out, /Share<\/span><span class="gate-value">1\.0 %/);
+    const bars = renderCard("breakdown.js", [row]);
+    assert.match(bars, /Solar<\/span><span class="gate-value">5\.0 kWh · 1\.0 %/);
+  }
+  // Listed as unknown, the correlations are unknown too, whatever is still stored.
+  const stale = renderCard("asset_cards.js", [{ ...solar, twin_corr_temperature: "-0.9" }]);
+  assert.match(stale, /Temperature<\/span><span class="gate-value">—/);
 });

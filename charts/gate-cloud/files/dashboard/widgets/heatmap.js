@@ -1,9 +1,9 @@
 // CONSUMPTION HEATMAP. Classes: gate-heat, gate-heat-corner, gate-heat-hour, gate-heat-day,
 // gate-heat-cell, gate-heat-empty, gate-heat-legend, gate-heat-swatch, gate-label, gate-value, gate-muted.
 // Building row: analytics_heatmap (JSON {unit, days: [7 labels], values: [7][24] mean kW or null,
-// samples: [7][24]}), local weekday x hour in America/Toronto. A null cell is unknown and stays empty.
+// samples: [7][24]}) and analytics_unknown; local weekday x hour in America/Toronto. A null cell is unknown and stays empty.
 var building = gate.firstWithKey(data, "analytics_heatmap") || {};
-var heat = gate.json(building.analytics_heatmap);
+var heat = gate.json(gate.known(building, "analytics_heatmap", "analytics_unknown"));
 if (!heat || !Array.isArray(heat.values)) return gate.card("CONSUMPTION HEATMAP", '<div class="gate-muted">—</div>');
 var unit = typeof heat.unit === "string" && heat.unit ? heat.unit : "kW";
 var days = Array.isArray(heat.days) ? heat.days : [];

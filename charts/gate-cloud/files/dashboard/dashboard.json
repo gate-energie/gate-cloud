@@ -166,6 +166,15 @@
                   "settings": {},
                   "units": null,
                   "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
                 }
               ]
             }
@@ -270,6 +279,15 @@
                   "name": "today_energy_kwh",
                   "type": "attribute",
                   "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -391,6 +409,15 @@
                   "settings": {},
                   "units": null,
                   "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
                 }
               ]
             }
@@ -464,6 +491,24 @@
                   "settings": {},
                   "units": null,
                   "decimals": null
+                },
+                {
+                  "name": "today_updated_at",
+                  "type": "attribute",
+                  "label": "today_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
                 }
               ]
             },
@@ -486,6 +531,15 @@
                   "name": "today_energy_kwh",
                   "type": "attribute",
                   "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -826,9 +880,27 @@
               "filterId": null,
               "dataKeys": [
                 {
-                  "name": "analytics_scatter",
+                  "name": "analytics_daily",
                   "type": "attribute",
-                  "label": "analytics_scatter",
+                  "label": "analytics_daily",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_updated_at",
+                  "type": "attribute",
+                  "label": "analytics_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_unknown",
+                  "type": "attribute",
+                  "label": "analytics_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -911,6 +983,24 @@
                   "name": "forecast",
                   "type": "attribute",
                   "label": "forecast",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "forecast_updated_at",
+                  "type": "attribute",
+                  "label": "forecast_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "forecast_unknown",
+                  "type": "attribute",
+                  "label": "forecast_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -1017,6 +1107,24 @@
                   "decimals": null
                 },
                 {
+                  "name": "month_updated_at",
+                  "type": "attribute",
+                  "label": "month_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_unknown",
+                  "type": "attribute",
+                  "label": "month_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
                   "name": "today_cost_cad",
                   "type": "attribute",
                   "label": "today_cost_cad",
@@ -1026,9 +1134,18 @@
                   "decimals": null
                 },
                 {
-                  "name": "yesterday_cost_cad",
+                  "name": "yesterday_same_time_cost_cad",
                   "type": "attribute",
-                  "label": "yesterday_cost_cad",
+                  "label": "yesterday_same_time_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -1108,6 +1225,15 @@
                   "decimals": null
                 },
                 {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
                   "name": "twin_7d_energy_kwh",
                   "type": "attribute",
                   "label": "twin_7d_energy_kwh",
@@ -1138,6 +1264,15 @@
                   "name": "twin_cost_cad",
                   "type": "attribute",
                   "label": "twin_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_unknown",
+                  "type": "attribute",
+                  "label": "twin_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -1574,6 +1709,24 @@
                   "settings": {},
                   "units": null,
                   "decimals": null
+                },
+                {
+                  "name": "analytics_updated_at",
+                  "type": "attribute",
+                  "label": "analytics_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_unknown",
+                  "type": "attribute",
+                  "label": "analytics_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
                 }
               ]
             }
@@ -1625,6 +1778,24 @@
                   "name": "analytics_scatter",
                   "type": "attribute",
                   "label": "analytics_scatter",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_updated_at",
+                  "type": "attribute",
+                  "label": "analytics_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_unknown",
+                  "type": "attribute",
+                  "label": "analytics_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -1707,6 +1878,15 @@
                   "name": "twin_quality",
                   "type": "attribute",
                   "label": "twin_quality",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_unknown",
+                  "type": "attribute",
+                  "label": "twin_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,
@@ -1894,15 +2074,6 @@
                   "decimals": null
                 },
                 {
-                  "name": "today_energy_kwh",
-                  "type": "attribute",
-                  "label": "today_energy_kwh",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
                   "name": "twin_quality",
                   "type": "attribute",
                   "label": "twin_quality",
@@ -1924,6 +2095,33 @@
                   "name": "twin_overload",
                   "type": "attribute",
                   "label": "twin_overload",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_unknown",
+                  "type": "attribute",
+                  "label": "twin_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
                   "color": "#22d3ee",
                   "settings": {},
                   "units": null,

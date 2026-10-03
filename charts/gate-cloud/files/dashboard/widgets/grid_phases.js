@@ -2,7 +2,7 @@
 // gate-phases, gate-phase, gate-phase-head, gate-label, gate-value, gate-bar (via gate.bar),
 // gate-list-row, gate-badge, gate-ok, gate-amber.
 // Monitor row: main_phase_{1,2}_active_power, main_phase_{1,2}_voltage, main_total_current;
-// building row: today_peak_w, yesterday_peak_w.
+// building row: today_peak_w, yesterday_peak_w, today_unknown.
 var monitor = gate.firstWithKey(data, "main_phase_1_active_power") || {};
 var building = gate.firstWithKey(data, "yesterday_peak_w") || {};
 var p1 = gate.num(monitor.main_phase_1_active_power);
@@ -25,8 +25,8 @@ var badge = imbalance === null ? ""
 var html = '<div class="gate-stats">' +
   stat("Total voltage", gate.fmt(voltage, 1, "V")) +
   stat("Total current", gate.fmt(monitor.main_total_current, 1, "A")) +
-  stat("Today's peak", gate.fmt(building.today_peak_w, 0, "W")) +
-  stat("Yesterday's peak", gate.fmt(building.yesterday_peak_w, 0, "W")) +
+  stat("Today's peak", gate.fmt(gate.known(building, "today_peak_w", "today_unknown"), 0, "W")) +
+  stat("Yesterday's peak", gate.fmt(gate.known(building, "yesterday_peak_w", "today_unknown"), 0, "W")) +
   '</div><div class="gate-phases">' +
   phase("Phase 1", p1, monitor.main_phase_1_voltage) + phase("Phase 2", p2, monitor.main_phase_2_voltage) +
   '</div><div class="gate-list-row"><span class="gate-label">Imbalance</span><span class="gate-value">' +
