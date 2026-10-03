@@ -32,9 +32,10 @@ points.forEach(function (p) {
 });
 // Pearson r needs a week of days and spread on both axes.
 var r = n >= 7 && sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : null;
-// Least-squares line across the temperature range, clipped to the box (percent coordinates).
+// Least-squares line across the temperature range, clipped to the box (percent coordinates);
+// like r, only with a week of days.
 var trend = "";
-if (n >= 2 && sxx > 0) {
+if (n >= 7 && sxx > 0) {
   var slope = sxy / sxx;
   var y1 = py(my + slope * (xmin - mx)), y2 = py(my + slope * (xmax - mx));
   var lo = 0, hi = 1;

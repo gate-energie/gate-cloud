@@ -130,6 +130,10 @@ test("scatter: fewer than 7 days gives no r; points without temperature are skip
   const six = renderCard("scatter.js", [{ ...building, analytics_scatter: JSON.stringify(scatter.slice(0, 6)) }]);
   assert.equal(count(six, /class="gate-dot"/g), 6);
   assert.match(six, /r = —/);
+  // Like r, the trend needs a week of days.
+  assert.doesNotMatch(six, /gate-trend/);
+  const seven = renderCard("scatter.js", [{ ...building, analytics_scatter: JSON.stringify(scatter.slice(0, 7)) }]);
+  assert.match(seven, /gate-trend/);
   const gaps = [...scatter, { date: "2026-09-30", kwh: 50, temp_mean_c: null }, { date: "<i>", kwh: "", temp_mean_c: 1 }];
   const out = renderCard("scatter.js", [{ ...building, analytics_scatter: JSON.stringify(gaps) }]);
   assert.equal(count(out, /class="gate-dot"/g), 10);
@@ -150,9 +154,10 @@ test("breakdown: bars sorted by kWh and a donut of the top 6 plus other", () => 
   assert.match(out, /Solar<\/span><span class="gate-value">— · —/);
   assert.match(out, /width:100%/);
   assert.match(out, /width:33%/);
-  assert.match(out, /conic-gradient\(#22d3ee 0% 36%, #3b82f6 36% 48%, #f59e0b 48% 54%, #ef4444 54% 58%, #a855f7 58% 60\.4%, #22c55e 60\.4% 62%, #4b5563 62% 100%\)/);
+  assert.match(out, /conic-gradient\(#22d3ee 0% 36%, #3b82f6 36% 48%, #f59e0b 48% 54%, #94a3b8 54% 58%, #a855f7 58% 60\.4%, #22c55e 60\.4% 62%, #4b5563 62% 100%\)/);
   assert.equal(count(out, /class="gate-legend-item"/g), 7);
-  assert.match(out, /Other<\/span><span class="gate-value">38\.0 %/);
+  assert.match(out, /Other \+ unmonitored<\/span><span class="gate-value">38\.0 %/);
+  assert.doesNotMatch(out, /#ef4444/);
   assert.match(out, /gate-donut-value">62\.0 %/);
 });
 
