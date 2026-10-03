@@ -4,12 +4,13 @@ The only module that knows which keys hold what. twin.py stays pure.
 """
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass, field
 from typing import Any
 
 from gate_cloud.asset_model import Plan
 from gate_cloud.tariff import RateD
-from gate_cloud.twin import CircuitInput, CircuitMetrics, Series, Window, allocate, circuit_metrics
+from gate_cloud.twin import CircuitInput, CircuitMetrics, Series, Window, allocate, circuit_metrics, local_day
 
 MAIN = "main_total"  # used only when the plan's Panel has no circuit_key
 MINUTE_MS = 60_000  # metric buckets: "on" means a minute averaging over 10 W
@@ -32,6 +33,7 @@ class DailyResult:
     circuits: dict[str, CircuitMetrics] = field(default_factory=dict)
     building: dict[str, Any] = field(default_factory=dict)
     no_data: list[str] = field(default_factory=list)
+    main: CircuitMetrics | None = None  # the building aggregate over the same window
 
 
 def circuits(session, plan: Plan) -> tuple[list[Circuit], list[str]]:
@@ -101,6 +103,47 @@ def measure(session, monitor, plan: Plan, rate: RateD, window: Window, days: int
             result.no_data.append(c.name)
         else:
             result.circuits[c.name] = m
-    main = circuit_metrics(window, MINUTE_MS, read_input(session, monitor, main_key(plan), window))
-    result.building = allocate(result.circuits, main, rate, days) or {}
+    result.main = circuit_metrics(window, MINUTE_MS, read_input(session, monitor, main_key(plan), window))
+    result.building = allocate(result.circuits, result.main, rate, days) or {}
     return result
+
+
+def usable_energy(m: CircuitMetrics | None) -> float | None:
+    """Energy fit for totals and costs: None when missing, flagged or negative."""
+    if m is None or m.quality is not None or m.energy_kwh < 0:
+        return None
+    return m.energy_kwh
+
+
+def read_energy(session, device, key: str, window: Window) -> float | None:
+    """Usable energy of `key` over `window` (counter, integration fallback)."""
+    return usable_energy(circuit_metrics(window, MINUTE_MS, read_input(session, device, key, window)))
+
+
+def read_peak(session, device, key: str, window: Window) -> tuple[float | None, int | None]:
+    """Highest 1-minute maximum of `<key>_active_power` and the start of its minute."""
+    raw = session.timeseries(device, [f"{key}_active_power"], window.start_ms, window.end_ms, MINUTE_MS, "MAX")
+    points = raw.get(f"{key}_active_power") or []
+    if not points:
+        return None, None
+    ts, watts = max(points, key=lambda p: p[1])  # earliest minute on a tie
+    return watts, ts
+
+
+def read_hourly(session, device, key: str, window: Window) -> Series:
+    """Hourly average power of `key` (W), for the weekday x hour heatmap."""
+    return read_power(session, device, key, window, HOUR_MS)
+
+
+def read_daily_energy(session, device, key: str, first: dt.date, end: dt.date) -> list[tuple[dt.date, float | None]]:
+    """Counter energy of each local day in [first, end): one last_value per local
+    midnight, no minute data. A day missing either counter is None; a negative
+    difference (counter reset) is kept and left to the caller to discard."""
+    counter = f"{key}_energy_in_kwh"
+    days = [first + dt.timedelta(days=i) for i in range((end - first).days)]
+    midnights = [local_day(day).start_ms for day in days] + ([local_day(end).start_ms] if days else [])
+    values = [session.last_value(device, counter, ms) for ms in midnights]
+    return [
+        (day, round(values[i + 1] - values[i], 3) if values[i] is not None and values[i + 1] is not None else None)
+        for i, day in enumerate(days)
+    ]

@@ -221,8 +221,8 @@ def test_summary_writes_month_budget_on_the_building(tmp_path):
     b = SHARED.attrs["asset-B"]
     assert None not in b.values()
     # end_date 2026-10-01 is the 1st: the month window is empty
-    assert set(b["month_unknown"].split(",")) == {"month_energy_kwh", "month_cost_cad",
-                                                  "month_budget_used_pct", "month_projected_cost_cad"}
+    assert set(b["month_unknown"].split(",")) == {"month_energy_kwh", "month_cost_cad", "month_budget_used_pct",
+                                                  "month_projected_cost_cad", "month_avg_daily_cost_cad"}
 
 
 def test_summary_month_budget_mid_month(tmp_path):
@@ -257,8 +257,8 @@ def test_flagged_negative_main_aggregate_leaves_the_month_unknown(tmp_path):
     assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
     b = SHARED.attrs["asset-B"]
     assert not {"month_energy_kwh", "month_cost_cad", "month_projected_cost_cad", "month_energy_source"} & set(b)
-    assert set(b["month_unknown"].split(",")) == {"month_energy_kwh", "month_cost_cad",
-                                                  "month_budget_used_pct", "month_projected_cost_cad"}
+    assert set(b["month_unknown"].split(",")) == {"month_energy_kwh", "month_cost_cad", "month_budget_used_pct",
+                                                  "month_projected_cost_cad", "month_avg_daily_cost_cad"}
 
 
 def test_month_budget_percentage_end_to_end(tmp_path):
@@ -273,3 +273,114 @@ def test_month_budget_percentage_end_to_end(tmp_path):
     assert b["month_cost_cad"] == cost
     assert b["month_budget_used_pct"] == round(100 * cost / 150, 1)
     assert b["month_energy_source"] == "counter"
+
+
+TORONTO = ZoneInfo("America/Toronto")
+TODAY = local_day(dt.date(2026, 10, 1))
+NOON = dt.datetime(2026, 10, 1, 12, tzinfo=TORONTO)
+NOON_MS = int(NOON.timestamp() * 1000)
+
+
+def snapshot_config(now: str):
+    return {"ops": {"today_snapshot": {"config": {"now": now}}}}
+
+
+def seed_today():
+    """Yesterday (2026-09-30) as in seed(); today 2 kW until noon with a 5 kW minute at 10:00."""
+    seed()
+    dev = "dev-1"
+    peak_ts = int(dt.datetime(2026, 10, 1, 10, tzinfo=TORONTO).timestamp() * 1000)
+    SHARED.series[(dev, "main_total_active_power")] += [
+        (t, 5000.0 if t == peak_ts else 2000.0) for t in range(TODAY.start_ms, NOON_MS, MIN)
+    ]
+    SHARED.series[(dev, "main_total_energy_in_kwh")].append((NOON_MS - MIN, 1054.0))
+    SHARED.series[(dev, "heating_active_power")] += [(t, 1000.0) for t in range(TODAY.start_ms, NOON_MS, MIN)]
+    SHARED.series[(dev, "heating_energy_in_kwh")].append((NOON_MS - MIN, 127.0))
+    return peak_ts
+
+
+def test_today_snapshot_writes_today_and_yesterday_on_the_building(tmp_path):
+    from gate_cloud.twin import day_cost
+
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    peak_ts = seed_today()
+    result = dg.materialize([d.today_snapshot], resources=res, run_config=snapshot_config(NOON.isoformat()))
+    assert result.success
+    b = SHARED.attrs["asset-B"]
+    assert None not in b.values()
+    assert b["today_energy_kwh"] == 6.0  # counter 1048 at midnight -> 1054 at noon
+    assert b["today_cost_cad"] == day_cost(6.0, RateD())
+    assert b["today_peak_w"] == 5000.0 and b["today_peak_at"] == peak_ts
+    assert b["yesterday_energy_kwh"] == 48.0
+    assert b["yesterday_cost_cad"] == day_cost(48.0, RateD())
+    assert b["yesterday_peak_w"] == 2000.0
+    assert b["yesterday_same_time_kwh"] == 24.0  # no counter near yesterday noon: 2 kW x 12 h integrated
+    assert b["today_updated_at"] == NOON_MS
+    assert b["today_unknown"] == ""
+    heating = SHARED.attrs["asset-heating"]
+    assert None not in heating.values()
+    assert heating["today_energy_kwh"] == 3.0 and heating["today_cost_cad"] > 0
+    assert heating["today_unknown"] == ""
+
+
+def test_today_snapshot_just_after_midnight_lists_unknowns(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    SHARED.series.clear()
+    result = dg.materialize([d.today_snapshot], resources=res,
+                            run_config=snapshot_config("2026-10-01T00:05:00-04:00"))
+    assert result.success
+    b = SHARED.attrs["asset-B"]
+    assert None not in b.values()
+    assert {"today_energy_kwh", "today_cost_cad", "today_peak_w", "today_peak_at",
+            "yesterday_energy_kwh"} <= set(b["today_unknown"].split(","))
+    assert "today_energy_kwh" not in b
+    assert set(SHARED.attrs["asset-heating"]["today_unknown"].split(",")) == {"today_energy_kwh", "today_cost_cad"}
+
+
+def test_today_snapshot_leaves_a_flagged_aggregate_unknown(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    SHARED.series.clear()
+    SHARED.series[("dev-1", "main_total_active_power")] = [(t, -500.0) for t in range(TODAY.start_ms, NOON_MS, MIN)]
+    SHARED.series[("dev-1", "heating_active_power")] = [(t, 1000.0) for t in range(TODAY.start_ms, NOON_MS, MIN)]
+    assert dg.materialize([d.today_snapshot], resources=res, run_config=snapshot_config(NOON.isoformat())).success
+    b = SHARED.attrs["asset-B"]
+    assert {"today_energy_kwh", "today_cost_cad"} <= set(b["today_unknown"].split(","))
+    heating = SHARED.attrs["asset-heating"]
+    assert heating["today_energy_kwh"] == 12.0
+    assert heating["today_unknown"] == "today_cost_cad"
+
+
+def test_summary_writes_nightly_analytics(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    seed()  # 2026-09-30: main_total 2 kW, counter 1000 -> 1048
+    weather = SHARED.ensure_device(d.WEATHER_DEVICE, "weather", "Weather")
+    SHARED.series[(weather, "temperature_c")] = [(t, 4.0) for t in range(DAY.start_ms, DAY.end_ms, 3_600_000)]
+    calls = recorded_reads()
+    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    b = SHARED.attrs["asset-B"]
+    assert None not in b.values()
+    heat = b["analytics_heatmap"]
+    assert len(heat["values"]) == 7 and all(len(row) == 24 for row in heat["values"])
+    assert heat["values"][2][12] == 2.0  # 2026-09-30 is a Wednesday, 2 kW
+    assert b["analytics_scatter"] == [{"date": "2026-09-30", "kwh": 48.0, "temp_mean_c": 4.0}]
+    assert "analytics_updated_at" in b and b["analytics_unknown"] == ""
+    assert b["month_days_left"] == 30  # end_date 2026-10-02: one day elapsed of 31
+    assert "month_avg_daily_cost_cad" in b["month_unknown"].split(",")  # no October counter seeded
+    assert (("main_total_active_power",), 3_600_000, "AVG") in calls
+    heating = SHARED.attrs["asset-heating"]
+    assert heating["twin_7d_energy_kwh"] == 24.0 and heating["twin_7d_cost_cad"] > 0
+    assert None not in heating.values()
+
+
+def test_summary_month_average_daily_cost(tmp_path):
+    res = weather_resources(tmp_path)
+    dg.materialize([d.thingsflow_asset_model], resources=res)
+    _month_series()
+    assert dg.materialize([d.asset_twin_summary], resources=res, run_config=MONTH_CONFIG).success
+    b = SHARED.attrs["asset-B"]
+    assert b["month_avg_daily_cost_cad"] == b["month_cost_cad"]  # one elapsed day
+    assert b["month_days_left"] == 30

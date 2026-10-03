@@ -230,3 +230,37 @@ def test_dashboard_template_errors_become_failures(tmp_path):
     with pytest.raises(dg.Failure, match="UNKNOWN_ID"):
         d.thingsflow_dashboard(res["thingsflow"], res["asset_model_file"], res["dashboard_file"])
     assert SHARED.dashboard_writes == 0
+
+
+FORECAST = {"days": [{"date": f"2026-10-0{i}", "tmin": 1.0, "tmax": 9.0, "code": 3} for i in (1, 2, 3)],
+            "hours": [{"ts": 1, "temp": 4.0, "code": 3}]}
+
+
+class ForecastWeather(FakeWeather):
+    def client(self):
+        class C(OpenMeteo):
+            def forecast(self, latitude, longitude, now):
+                assert (latitude, longitude) == (46.35, -72.58)
+                return FORECAST
+
+        return C("f", "a")
+
+
+def test_weather_forecast_is_saved_on_the_weather_device(tmp_path):
+    res = weather_resources(tmp_path)
+    res["weather"] = ForecastWeather()
+    SHARED.ensure_device(d.WEATHER_DEVICE, "weather", "Weather")
+    result = dg.materialize([d.weather_forecast], resources=res)
+    assert result.success
+    attrs = SHARED.attrs["device-GATE Weather"]
+    assert len(attrs["forecast"]["days"]) == 3
+    assert isinstance(attrs["forecast_updated_at"], int)
+    assert attrs["forecast_unknown"] == ""
+
+
+def test_weather_forecast_needs_the_weather_device(tmp_path):
+    res = weather_resources(tmp_path)
+    res["weather"] = ForecastWeather()
+    with pytest.raises(dg.Failure, match="weather_observations"):
+        d.weather_forecast(res["thingsflow"], res["asset_model_file"], res["weather"])
+    assert SHARED.attrs == {}
