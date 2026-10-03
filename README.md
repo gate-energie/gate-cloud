@@ -169,7 +169,8 @@ kubectl -n gate create secret generic gate-cloud-thingsflow \
   --from-literal=THINGSFLOW_USERNAME=gate-ops@example.org \
   --from-literal=THINGSFLOW_PASSWORD='…'
 helm upgrade --install gate-cloud charts/gate-cloud -n gate \
-  --set monitorDeviceId=<device-id>
+  --set monitorDeviceId=<device-id> \
+  --set dagster.postgresql.postgresqlPassword='…'
 ```
 
 After the first install, backfill `weather_observations` from `HISTORY_START`
@@ -177,6 +178,22 @@ After the first install, backfill `weather_observations` from `HISTORY_START`
 policy fetches the whole range in one run. Then backfill
 `circuit_daily_metrics` over the same days. `asset_twin_summary` needs no
 backfill: it runs nightly by itself over the last 30 days.
+
+### Upgrading from 0.3.0
+
+- Do not use `--reuse-values`. It keeps the 0.3.0 values, and with them the
+  0.3.0 `dagster-user-deployments` entry, which has no dashboard volume and no
+  `GATE_DASHBOARD_PATH`; pass your overrides again instead (`--set
+  monitorDeviceId=...` and the same `dagster.postgresql.postgresqlPassword`
+  as before, or `-f` your values file).
+- Check what the release overrides first with `helm get values gate-cloud -n gate`.
+  Do not override `dagster.dagster-user-deployments.deployments`: a list in
+  values replaces the chart's list whole, dropping the env and volumes 0.4.0
+  adds. Set only top-level values such as `monitorDeviceId` and `thingsflow.*`.
+- After the upgrade, materialise `asset_twin_summary` once in the UI
+  (Assets -> `asset_twin_summary` -> Materialize). Otherwise the Heatmap, the
+  Scatter, the 30-day bars and the 7-day columns stay empty until its nightly
+  run at 01:45.
 
 The chart wraps the official Dagster chart (webserver, daemon, Postgres for run
 history, K8sRunLauncher) and adds the asset model and dashboard ConfigMaps and a NetworkPolicy
