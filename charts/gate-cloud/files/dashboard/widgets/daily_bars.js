@@ -1,9 +1,10 @@
 // CONSUMPTION — 30 DAYS. Classes: gate-cols, gate-col, gate-col-empty, gate-col-fill,
 // gate-cols-legend, gate-label, gate-value, gate-muted.
-// Building row: analytics_scatter (JSON list of {date: "YYYY-MM-DD", kwh, temp_mean_c}), analytics_unknown.
+// Building row: analytics_daily (JSON list of {date: "YYYY-MM-DD", kwh}: counter energy of each complete
+// local day, with or without weather), analytics_unknown.
 // Always 30 calendar days ending at the latest date; days without data are empty slots.
-var building = gate.firstWithKey(data, "analytics_scatter") || {};
-var points = gate.json(gate.known(building, "analytics_scatter", "analytics_unknown"));
+var building = gate.firstWithKey(data, "analytics_daily") || {};
+var points = gate.json(gate.known(building, "analytics_daily", "analytics_unknown"));
 var DAY = 86400000;
 var parse = function (iso) {
   var m = typeof iso === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso) : null;

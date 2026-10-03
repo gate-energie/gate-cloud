@@ -45,11 +45,11 @@ value from an earlier run is recognisable.
 
 | Entity | Attributes | Written by |
 |---|---|---|
-| Building | `today_energy_kwh`, `today_cost_cad`, `today_peak_w`, `today_peak_at`, `yesterday_energy_kwh`, `yesterday_cost_cad`, `yesterday_peak_w`, `yesterday_same_time_kwh`, `today_updated_at`, `today_unknown` | `today_snapshot` |
+| Building | `today_energy_kwh`, `today_cost_cad`, `today_peak_w`, `today_peak_at`, `yesterday_energy_kwh`, `yesterday_cost_cad`, `yesterday_peak_w`, `yesterday_same_time_kwh`, `yesterday_same_time_cost_cad` (yesterday up to the same local time, priced like today), `today_updated_at`, `today_unknown` | `today_snapshot` |
 | circuit | `today_energy_kwh`, `today_cost_cad`, `today_unknown` | `today_snapshot` |
 | Building | `month_energy_kwh`, `month_energy_source`, `month_cost_cad`, `month_budget_used_pct`, `month_projected_cost_cad`, `month_avg_daily_cost_cad`, `month_days_left`, `month_updated_at`, `month_unknown` | `asset_twin_summary` |
-| Building | `analytics_heatmap` (weekday x hour mean power, last 30 days), `analytics_scatter` (daily energy against mean temperature since `HISTORY_START`), `analytics_updated_at`, `analytics_unknown` | `asset_twin_summary` |
-| circuit | `twin_*` (30 days), `twin_7d_energy_kwh`, `twin_7d_cost_cad`, `twin_updated_at`, `twin_unknown` | `asset_twin_summary` |
+| Building | `analytics_heatmap` (weekday x hour mean power, last 30 days), `analytics_daily` (counter energy of each complete day since `HISTORY_START`, with or without weather), `analytics_scatter` (the same days' energy against mean temperature, for days that have one), `analytics_updated_at`, `analytics_unknown` | `asset_twin_summary` |
+| circuit | `twin_*` (30 days; `twin_quality` is `""` when not flagged), `twin_7d_energy_kwh`, `twin_7d_cost_cad`, `twin_updated_at`, `twin_unknown` | `asset_twin_summary` |
 | `GATE Weather` | `forecast` (JSON: `days`, `hours`), `forecast_updated_at`, `forecast_unknown` | `weather_forecast` |
 
 A main aggregate or circuit flagged `negative_power`, or with negative energy,

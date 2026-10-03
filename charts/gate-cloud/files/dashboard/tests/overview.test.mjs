@@ -49,6 +49,7 @@ const building = real("building", {
   // A whole day yesterday cost more than today so far; the same hours cost 2.10.
   yesterday_cost_cad: "9.99", yesterday_energy_kwh: "60", yesterday_same_time_cost_cad: "2.10",
   analytics_scatter: JSON.stringify(scatter),
+  analytics_daily: JSON.stringify(scatter.map(({ date, kwh }) => ({ date, kwh }))),
 });
 const circuit = (label, today, cost, d7, c7, d30, c30) => real("circuits", {
   entityName: label, entityType: "ASSET", label,
@@ -224,7 +225,14 @@ test("daily_bars: last 30 days with max and average", () => {
   assert.match(out, /height:50%/);
   assert.match(out, /Max<\/span> <span class="gate-value">20\.0 kWh/);
   assert.match(out, /Average<\/span> <span class="gate-value">10\.3 kWh/);
-  assert.match(renderCard("daily_bars.js", [{ ...building, analytics_scatter: "[]" }]), /No data yet/);
+  assert.match(renderCard("daily_bars.js", [{ ...building, analytics_daily: "[]" }]), /No data yet/);
+});
+
+test("daily_bars: days without weather still get a bar", () => {
+  // analytics_scatter drops days without a temperature; the bars read analytics_daily.
+  const out = renderCard("daily_bars.js", [{ ...building, analytics_scatter: "[]" }]);
+  assert.equal(count(out, /class="gate-col"/g), 29);
+  assert.match(out, /title="2026-10-02: 20\.0 kWh"/);
 });
 
 test("weather: current conditions and three forecast tiles", () => {
