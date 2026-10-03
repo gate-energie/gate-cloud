@@ -129,12 +129,17 @@ TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "charts/gate-cloud/files/da
 RAW = json.loads((TEMPLATE_DIR / "dashboard.json").read_text(encoding="utf-8"))
 REAL_CIRCUITS = [CircuitSeries(k, k.replace("_", " ").title()) for k in REAL_KEYS]
 STATES = {"overview": "Overview", "analytics": "Analytics", "assets": "Assets"}
-CARDS = ["power_flow", "live_telemetry", "grid_phases", "today_energy", "daily_bars", "weather", "budget",
+CARDS = ["kpi_strip", "power_flow", "live_telemetry", "grid_phases", "today_energy", "daily_bars", "weather", "budget",
          "circuit_cost", "heatmap", "scatter", "breakdown", "asset_cards"]
 # What each card reads, by alias: (key, type). Monitor keys are time series (singleEntity serves no
 # attributes); building and circuit values are attributes; label/type are entity fields.
 MONITOR, BUILDING, CIRC, WEATHER = "monitor", "building", "circuits", "weather"
 CARD_KEYS = {
+    "kpi_strip": {(MONITOR, "main_total_active_power", "timeseries")}
+    | {(BUILDING, k, "attribute") for k in ("today_energy_kwh", "today_cost_cad", "today_peak_w", "yesterday_same_time_kwh",
+                                            "monthly_budget", "month_cost_cad", "month_budget_used_pct",
+                                            "month_projected_cost_cad")}
+    | {(WEATHER, k, "timeseries") for k in ("temperature_c", "humidity_pct", "wind_speed_ms")},
     "power_flow": {(MONITOR, "main_total_active_power", "timeseries"), (BUILDING, "today_energy_kwh", "attribute")},
     "live_telemetry": {(MONITOR, k, "timeseries") for k in ("main_total_active_power", "main_phase_1_voltage",
                                                             "main_phase_2_voltage", "main_total_current")}
@@ -172,15 +177,23 @@ def real_rendered():
     return render(load_template(TEMPLATE_DIR), "dev-1", "wx-1", REAL_CIRCUITS, ["HVAC", "Lighting"])
 
 
+def _card_name(widget):
+    """The widget file of a custom markdown card, else None."""
+    settings = widget["config"].get("settings", {})
+    if widget["typeFullFqn"] == "system.cards.markdown_card" and settings.get("useMarkdownTextFunction"):
+        ref = settings["markdownTextFunction"].split("\n")[-1]
+        return ref.removeprefix("${FILE:widgets/").removesuffix(".js}")
+    return None
+
+
+def _card_widgets_all(conf):
+    """(card name, widget) for every custom card; the KPI strip heads each state, so it appears once per state."""
+    return [(_card_name(w), w) for w in conf["widgets"].values() if _card_name(w)]
+
+
 def _card_widgets(conf):
-    """card name -> widget, for markdown cards whose text function is a widget file."""
-    out = {}
-    for widget in conf["widgets"].values():
-        settings = widget["config"].get("settings", {})
-        if widget["typeFullFqn"] == "system.cards.markdown_card" and settings.get("useMarkdownTextFunction"):
-            ref = settings["markdownTextFunction"].split("\n")[-1]
-            out[ref.removeprefix("${FILE:widgets/").removesuffix(".js}")] = widget
-    return out
+    """card name -> widget, for markdown cards whose text function is a widget file (one per name)."""
+    return dict(_card_widgets_all(conf))
 
 
 def _layout(conf, state):
@@ -248,26 +261,70 @@ def test_widgets_of_a_state_fit_do_not_overlap_and_each_widget_is_placed_once():
     assert sorted(placed) == sorted(conf["widgets"])
 
 
+def _widget_name(conf, wid):
+    widget = conf["widgets"][wid]
+    return _card_name(widget) or ("chart" if widget["typeFullFqn"] == "system.time_series_chart" else "nav")
+
+
+# name: (sizeX, sizeY, col, row, mobileOrder, mobileHeight). Desktop fills each state edge to edge under a
+# header band (navigation + KPI strip); the phone stacks widgets in mobileOrder.
+LAYOUT = {
+    "overview": {"nav": (7, 2, 0, 0, 1, 1), "kpi_strip": (17, 2, 7, 0, 2, 3),
+                 "power_flow": (12, 5, 0, 2, 3, 6), "today_energy": (6, 5, 12, 2, 4, 5),
+                 "weather": (6, 5, 18, 2, 9, 5), "circuit_cost": (12, 9, 0, 7, 6, 19),
+                 "live_telemetry": (6, 4, 12, 7, 10, 3), "budget": (6, 5, 18, 7, 5, 5),
+                 "grid_phases": (6, 5, 12, 11, 11, 5), "daily_bars": (6, 4, 18, 12, 8, 4),
+                 "chart": (24, 4, 0, 16, 7, 5)},
+    "analytics": {"nav": (7, 2, 0, 0, 1, 1), "kpi_strip": (17, 2, 7, 0, 2, 3), "chart": (16, 6, 0, 2, 3, 6),
+                  "scatter": (8, 6, 16, 2, 5, 5), "heatmap": (24, 5, 0, 8, 4, 5), "breakdown": (24, 4, 0, 13, 6, 12)},
+    "assets": {"nav": (7, 2, 0, 0, 1, 1), "kpi_strip": (17, 2, 7, 0, 2, 3), "asset_cards": (24, 13, 0, 2, 4, 50),
+               "chart": (24, 7, 0, 15, 3, 6)},
+}
+
+
 def test_layout_places_the_cards_as_designed():
     conf = RAW["configuration"]
-    cards = {id(w): name for name, w in _card_widgets(conf).items()}
-    expected = {
-        "overview": {"nav": (24, 2, 0, 0), "power_flow": (10, 6, 0, 2), "live_telemetry": (7, 6, 10, 2),
-                     "grid_phases": (7, 6, 17, 2), "today_energy": (7, 6, 0, 8), "chart": (10, 3, 7, 8),
-                     "daily_bars": (10, 3, 7, 11), "weather": (7, 6, 17, 8), "budget": (8, 7, 0, 14),
-                     "circuit_cost": (16, 7, 8, 14)},
-        "analytics": {"nav": (24, 2, 0, 0), "chart": (24, 7, 0, 2), "heatmap": (12, 7, 0, 9),
-                      "scatter": (12, 7, 12, 9), "breakdown": (24, 6, 0, 16)},
-        "assets": {"nav": (24, 2, 0, 0), "asset_cards": (24, 12, 0, 2), "chart": (24, 8, 0, 14)},
-    }
-    for state, want in expected.items():
+    for state, want in LAYOUT.items():
         got = {}
         for wid, pos in _layout(conf, state)["widgets"].items():
-            widget = conf["widgets"][wid]
-            name = cards.get(id(widget)) or ("chart" if widget["typeFullFqn"] == "system.time_series_chart" else "nav")
+            name = _widget_name(conf, wid)
             assert name not in got
-            got[name] = (pos["sizeX"], pos["sizeY"], pos["col"], pos["row"])
+            got[name] = (pos["sizeX"], pos["sizeY"], pos["col"], pos["row"], pos["mobileOrder"], pos["mobileHeight"])
         assert got == want, state
+
+
+def test_each_state_fills_its_grid_without_holes():
+    conf = RAW["configuration"]
+    for state in STATES:
+        widgets = _layout(conf, state)["widgets"].values()
+        rows = max(p["row"] + p["sizeY"] for p in widgets)
+        assert sum(p["sizeX"] * p["sizeY"] for p in widgets) == 24 * rows, state
+
+
+def test_every_widget_has_a_phone_order_and_height():
+    """Below 960 px ThingsBoard stacks widgets in mobileOrder at mobileHeight rows of mobileRowHeight px."""
+    conf = RAW["configuration"]
+    for state in STATES:
+        layout = _layout(conf, state)
+        assert (layout["gridSettings"]["mobileRowHeight"], layout["gridSettings"]["mobileAutoFillHeight"]) == (50, False)
+        orders = []
+        for wid, pos in layout["widgets"].items():
+            assert type(pos["mobileOrder"]) is int and type(pos["mobileHeight"]) is int, (state, wid)
+            assert pos["mobileHeight"] > 0, (state, wid)
+            orders.append(pos["mobileOrder"])
+        assert len(set(orders)) == len(orders), state
+        assert sorted(orders) == list(range(1, len(orders) + 1)), state
+        first = min(layout["widgets"], key=lambda w: layout["widgets"][w]["mobileOrder"])
+        assert _widget_name(conf, first) == "nav", state
+
+
+def test_every_state_is_headed_by_its_own_kpi_strip():
+    conf = RAW["configuration"]
+    strips = [w for name, w in _card_widgets_all(conf) if name == "kpi_strip"]
+    assert len(strips) == len(STATES)
+    for state in STATES:
+        [strip] = [wid for wid in _layout(conf, state)["widgets"] if _widget_name(conf, wid) == "kpi_strip"]
+        assert conf["widgets"][strip]["config"]["datasources"] == strips[0]["config"]["datasources"]
 
 
 def test_nav_cards_link_to_the_other_two_states():
@@ -314,7 +371,7 @@ def test_single_entity_chart_keys_have_human_labels():
 
 
 def test_every_custom_card_also_carries_the_theme():
-    for widget in _card_widgets(RAW["configuration"]).values():
+    for _, widget in _card_widgets_all(RAW["configuration"]):
         assert widget["config"]["settings"]["markdownCss"] == "${FILE:theme.css}"
     assert RAW["configuration"]["settings"]["dashboardCss"] == "${FILE:theme.css}"
 
@@ -326,7 +383,7 @@ def test_circuit_keys_must_not_look_like_main_aggregates():
 
 def test_each_card_has_the_keys_it_reads():
     conf = RAW["configuration"]
-    for name, widget in _card_widgets(conf).items():
+    for name, widget in _card_widgets_all(conf):
         have = {(ds["entityAliasId"], k["name"], k["type"]) for ds in widget["config"]["datasources"]
                 for k in (ds["dataKeys"] if isinstance(ds["dataKeys"], list) else []) if isinstance(k, dict)}
         assert CARD_KEYS[name] <= have, (name, CARD_KEYS[name] - have)
@@ -339,7 +396,7 @@ UNKNOWN_GROUPS = {"today_": "today_unknown", "yesterday_": "today_unknown", "mon
 
 
 def test_each_datasource_reading_a_group_reads_its_unknown_list():
-    for name, widget in _card_widgets(RAW["configuration"]).items():
+    for name, widget in _card_widgets_all(RAW["configuration"]):
         for ds in widget["config"]["datasources"]:
             if ds["entityAliasId"] not in (BUILDING, CIRC, WEATHER):
                 continue

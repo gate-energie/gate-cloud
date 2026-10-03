@@ -84,7 +84,9 @@ Environment, set by the chart:
 ## Dashboard
 
 `thingsflow_dashboard` publishes `GATE — Operación`, dark-themed, with three
-pages linked from a header on each:
+pages. Each opens with the same header band: the links to the other two pages
+and a KPI strip (power now, today's kWh and $, the month against the budget,
+the outside temperature).
 
 - **Overview** (the root): power flow from the grid to each circuit, live
   telemetry, grid phases, today's energy and cost against yesterday, 24-hour
@@ -104,6 +106,13 @@ inlines them, fills in the device ids and the circuits, and checks the result
 against what ThingsFlow can serve. The card scripts output HTML and CSS only;
 their tests run with
 `node --test "charts/gate-cloud/files/dashboard/tests/*.test.mjs"`.
+
+Each page fills the 24-column grid without holes. On a phone (below 960 px)
+ThingsBoard stacks the widgets full width in each layout entry's
+`mobileOrder`, `mobileHeight` rows of 50 px (`mobileRowHeight` in the grid
+settings); the cards switch to their phone layout with a CSS `@media` query
+on that width (ThingsBoard's CSS namespacing handles `@media` and
+`@keyframes`, not `@container`).
 
 Each card reads a group's `*_unknown` list next to its values and shows `—`
 for a listed key (`gate.known` in `_lib.js`), since the old value stays on the

@@ -67,7 +67,7 @@
         "id": "4f16e9cd-9139-5593-bffd-6258ca548441",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
-        "sizeX": 24,
+        "sizeX": 7,
         "sizeY": 2,
         "config": {
           "datasources": [],
@@ -77,7 +77,7 @@
           "padding": "8px",
           "settings": {
             "useMarkdownTextFunction": false,
-            "markdownTextPattern": "<div class=\"gate-nav\">Building energy · live and analytics</div>",
+            "markdownTextPattern": "<div class=\"gate-nav\">Live power, today and this month at a glance</div>",
             "markdownTextFunction": "",
             "applyDefaultMarkdownStyle": false,
             "markdownCss": ""
@@ -126,12 +126,200 @@
           }
         }
       },
+      "be3e1c6b-78ee-5f12-bfb2-d97cb05954f1": {
+        "id": "be3e1c6b-78ee-5f12-bfb2-d97cb05954f1",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 17,
+        "sizeY": 2,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": "W",
+                  "decimals": 0
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_peak_w",
+                  "type": "attribute",
+                  "label": "today_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_same_time_kwh",
+                  "type": "attribute",
+                  "label": "yesterday_same_time_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "monthly_budget",
+                  "type": "attribute",
+                  "label": "monthly_budget",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_cost_cad",
+                  "type": "attribute",
+                  "label": "month_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_budget_used_pct",
+                  "type": "attribute",
+                  "label": "month_budget_used_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_projected_cost_cad",
+                  "type": "attribute",
+                  "label": "month_projected_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_unknown",
+                  "type": "attribute",
+                  "label": "month_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "weather",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "temperature_c",
+                  "type": "timeseries",
+                  "label": "temperature_c",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "humidity_pct",
+                  "type": "timeseries",
+                  "label": "humidity_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "wind_speed_ms",
+                  "type": "timeseries",
+                  "label": "wind_speed_ms",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/kpi_strip.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Kpi Strip",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
       "235c6574-47dc-5fc4-9c4d-9fed75d7c4f2": {
         "id": "235c6574-47dc-5fc4-9c4d-9fed75d7c4f2",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
-        "sizeX": 10,
-        "sizeY": 6,
+        "sizeX": 12,
+        "sizeY": 5,
         "config": {
           "datasources": [
             {
@@ -208,255 +396,12 @@
           "showLegend": false
         }
       },
-      "eedf1ce7-938d-58ae-b425-98507c16348a": {
-        "id": "eedf1ce7-938d-58ae-b425-98507c16348a",
-        "typeFullFqn": "system.cards.markdown_card",
-        "type": "latest",
-        "sizeX": 7,
-        "sizeY": 6,
-        "config": {
-          "datasources": [
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "monitor",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "main_total_active_power",
-                  "type": "timeseries",
-                  "label": "main_total_active_power",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "main_phase_1_voltage",
-                  "type": "timeseries",
-                  "label": "main_phase_1_voltage",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "main_phase_2_voltage",
-                  "type": "timeseries",
-                  "label": "main_phase_2_voltage",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "main_total_current",
-                  "type": "timeseries",
-                  "label": "main_total_current",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            },
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "building",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "today_peak_w",
-                  "type": "attribute",
-                  "label": "today_peak_w",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_energy_kwh",
-                  "type": "attribute",
-                  "label": "today_energy_kwh",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_unknown",
-                  "type": "attribute",
-                  "label": "today_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            }
-          ],
-          "showTitle": false,
-          "backgroundColor": "#111827",
-          "color": "#e5e7eb",
-          "padding": "8px",
-          "settings": {
-            "useMarkdownTextFunction": true,
-            "markdownTextPattern": "",
-            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/live_telemetry.js}",
-            "applyDefaultMarkdownStyle": false,
-            "markdownCss": "${FILE:theme.css}"
-          },
-          "title": "Live Telemetry",
-          "showTitleIcon": false,
-          "iconColor": "rgba(0, 0, 0, 0.87)",
-          "iconSize": "24px",
-          "titleTooltip": "",
-          "dropShadow": false,
-          "enableFullscreen": false,
-          "widgetStyle": {
-            "border": "1px solid #1f2937",
-            "borderRadius": "8px"
-          },
-          "titleStyle": {
-            "fontSize": "16px",
-            "fontWeight": 400
-          },
-          "showLegend": false
-        }
-      },
-      "2223c29d-d6da-56b7-81c2-07506e8ea021": {
-        "id": "2223c29d-d6da-56b7-81c2-07506e8ea021",
-        "typeFullFqn": "system.cards.markdown_card",
-        "type": "latest",
-        "sizeX": 7,
-        "sizeY": 6,
-        "config": {
-          "datasources": [
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "monitor",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "main_phase_1_active_power",
-                  "type": "timeseries",
-                  "label": "main_phase_1_active_power",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "main_phase_2_active_power",
-                  "type": "timeseries",
-                  "label": "main_phase_2_active_power",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "main_phase_1_voltage",
-                  "type": "timeseries",
-                  "label": "main_phase_1_voltage",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "main_phase_2_voltage",
-                  "type": "timeseries",
-                  "label": "main_phase_2_voltage",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "main_total_current",
-                  "type": "timeseries",
-                  "label": "main_total_current",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            },
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "building",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "today_peak_w",
-                  "type": "attribute",
-                  "label": "today_peak_w",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "yesterday_peak_w",
-                  "type": "attribute",
-                  "label": "yesterday_peak_w",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_unknown",
-                  "type": "attribute",
-                  "label": "today_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            }
-          ],
-          "showTitle": false,
-          "backgroundColor": "#111827",
-          "color": "#e5e7eb",
-          "padding": "8px",
-          "settings": {
-            "useMarkdownTextFunction": true,
-            "markdownTextPattern": "",
-            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/grid_phases.js}",
-            "applyDefaultMarkdownStyle": false,
-            "markdownCss": "${FILE:theme.css}"
-          },
-          "title": "Grid Phases",
-          "showTitleIcon": false,
-          "iconColor": "rgba(0, 0, 0, 0.87)",
-          "iconSize": "24px",
-          "titleTooltip": "",
-          "dropShadow": false,
-          "enableFullscreen": false,
-          "widgetStyle": {
-            "border": "1px solid #1f2937",
-            "borderRadius": "8px"
-          },
-          "titleStyle": {
-            "fontSize": "16px",
-            "fontWeight": 400
-          },
-          "showLegend": false
-        }
-      },
       "e6ba45a9-e994-5e7a-bd9e-a1a5d1e0176b": {
         "id": "e6ba45a9-e994-5e7a-bd9e-a1a5d1e0176b",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
-        "sizeX": 7,
-        "sizeY": 6,
+        "sizeX": 6,
+        "sizeY": 5,
         "config": {
           "datasources": [
             {
@@ -577,12 +522,700 @@
           "showLegend": false
         }
       },
+      "1478400a-43b7-5910-8ea4-a37f03418279": {
+        "id": "1478400a-43b7-5910-8ea4-a37f03418279",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 6,
+        "sizeY": 5,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "weather",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "temperature_c",
+                  "type": "timeseries",
+                  "label": "temperature_c",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "humidity_pct",
+                  "type": "timeseries",
+                  "label": "humidity_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "wind_speed_ms",
+                  "type": "timeseries",
+                  "label": "wind_speed_ms",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "forecast",
+                  "type": "attribute",
+                  "label": "forecast",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "forecast_updated_at",
+                  "type": "attribute",
+                  "label": "forecast_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "forecast_unknown",
+                  "type": "attribute",
+                  "label": "forecast_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/weather.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Weather",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba": {
+        "id": "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 12,
+        "sizeY": 9,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "circuits",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "label",
+                  "type": "entityField",
+                  "label": "label",
+                  "color": "#9ca3af",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_7d_energy_kwh",
+                  "type": "attribute",
+                  "label": "twin_7d_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_7d_cost_cad",
+                  "type": "attribute",
+                  "label": "twin_7d_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_energy_kwh",
+                  "type": "attribute",
+                  "label": "twin_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_cost_cad",
+                  "type": "attribute",
+                  "label": "twin_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "twin_unknown",
+                  "type": "attribute",
+                  "label": "twin_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/circuit_cost.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Circuit Cost",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "eedf1ce7-938d-58ae-b425-98507c16348a": {
+        "id": "eedf1ce7-938d-58ae-b425-98507c16348a",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 6,
+        "sizeY": 4,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_1_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_1_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_2_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_2_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_total_current",
+                  "type": "timeseries",
+                  "label": "main_total_current",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_peak_w",
+                  "type": "attribute",
+                  "label": "today_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/live_telemetry.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Live Telemetry",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "c1acde45-9378-5ab8-a004-84635dac232b": {
+        "id": "c1acde45-9378-5ab8-a004-84635dac232b",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 6,
+        "sizeY": 5,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "monthly_budget",
+                  "type": "attribute",
+                  "label": "monthly_budget",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_cost_cad",
+                  "type": "attribute",
+                  "label": "month_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_projected_cost_cad",
+                  "type": "attribute",
+                  "label": "month_projected_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_budget_used_pct",
+                  "type": "attribute",
+                  "label": "month_budget_used_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_avg_daily_cost_cad",
+                  "type": "attribute",
+                  "label": "month_avg_daily_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_days_left",
+                  "type": "attribute",
+                  "label": "month_days_left",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_updated_at",
+                  "type": "attribute",
+                  "label": "month_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_unknown",
+                  "type": "attribute",
+                  "label": "month_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_same_time_cost_cad",
+                  "type": "attribute",
+                  "label": "yesterday_same_time_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/budget.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Budget",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "2223c29d-d6da-56b7-81c2-07506e8ea021": {
+        "id": "2223c29d-d6da-56b7-81c2-07506e8ea021",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 6,
+        "sizeY": 5,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_phase_1_active_power",
+                  "type": "timeseries",
+                  "label": "main_phase_1_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_2_active_power",
+                  "type": "timeseries",
+                  "label": "main_phase_2_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_1_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_1_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_phase_2_voltage",
+                  "type": "timeseries",
+                  "label": "main_phase_2_voltage",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "main_total_current",
+                  "type": "timeseries",
+                  "label": "main_total_current",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_peak_w",
+                  "type": "attribute",
+                  "label": "today_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_peak_w",
+                  "type": "attribute",
+                  "label": "yesterday_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/grid_phases.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Grid Phases",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
+      "608e0507-705d-52f8-a79a-03112c585b76": {
+        "id": "608e0507-705d-52f8-a79a-03112c585b76",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 6,
+        "sizeY": 4,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "analytics_daily",
+                  "type": "attribute",
+                  "label": "analytics_daily",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_updated_at",
+                  "type": "attribute",
+                  "label": "analytics_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_unknown",
+                  "type": "attribute",
+                  "label": "analytics_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/daily_bars.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Daily Bars",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
       "7d4af089-89f6-5194-a98b-dadde9b95a3d": {
         "id": "7d4af089-89f6-5194-a98b-dadde9b95a3d",
         "typeFullFqn": "system.time_series_chart",
         "type": "timeseries",
-        "sizeX": 10,
-        "sizeY": 3,
+        "sizeX": 24,
+        "sizeY": 4,
         "config": {
           "datasources": [
             {
@@ -865,456 +1498,11 @@
           }
         }
       },
-      "608e0507-705d-52f8-a79a-03112c585b76": {
-        "id": "608e0507-705d-52f8-a79a-03112c585b76",
-        "typeFullFqn": "system.cards.markdown_card",
-        "type": "latest",
-        "sizeX": 10,
-        "sizeY": 3,
-        "config": {
-          "datasources": [
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "building",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "analytics_daily",
-                  "type": "attribute",
-                  "label": "analytics_daily",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "analytics_updated_at",
-                  "type": "attribute",
-                  "label": "analytics_updated_at",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "analytics_unknown",
-                  "type": "attribute",
-                  "label": "analytics_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            }
-          ],
-          "showTitle": false,
-          "backgroundColor": "#111827",
-          "color": "#e5e7eb",
-          "padding": "8px",
-          "settings": {
-            "useMarkdownTextFunction": true,
-            "markdownTextPattern": "",
-            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/daily_bars.js}",
-            "applyDefaultMarkdownStyle": false,
-            "markdownCss": "${FILE:theme.css}"
-          },
-          "title": "Daily Bars",
-          "showTitleIcon": false,
-          "iconColor": "rgba(0, 0, 0, 0.87)",
-          "iconSize": "24px",
-          "titleTooltip": "",
-          "dropShadow": false,
-          "enableFullscreen": false,
-          "widgetStyle": {
-            "border": "1px solid #1f2937",
-            "borderRadius": "8px"
-          },
-          "titleStyle": {
-            "fontSize": "16px",
-            "fontWeight": 400
-          },
-          "showLegend": false
-        }
-      },
-      "1478400a-43b7-5910-8ea4-a37f03418279": {
-        "id": "1478400a-43b7-5910-8ea4-a37f03418279",
-        "typeFullFqn": "system.cards.markdown_card",
-        "type": "latest",
-        "sizeX": 7,
-        "sizeY": 6,
-        "config": {
-          "datasources": [
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "weather",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "temperature_c",
-                  "type": "timeseries",
-                  "label": "temperature_c",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "humidity_pct",
-                  "type": "timeseries",
-                  "label": "humidity_pct",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "wind_speed_ms",
-                  "type": "timeseries",
-                  "label": "wind_speed_ms",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "forecast",
-                  "type": "attribute",
-                  "label": "forecast",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "forecast_updated_at",
-                  "type": "attribute",
-                  "label": "forecast_updated_at",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "forecast_unknown",
-                  "type": "attribute",
-                  "label": "forecast_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            }
-          ],
-          "showTitle": false,
-          "backgroundColor": "#111827",
-          "color": "#e5e7eb",
-          "padding": "8px",
-          "settings": {
-            "useMarkdownTextFunction": true,
-            "markdownTextPattern": "",
-            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/weather.js}",
-            "applyDefaultMarkdownStyle": false,
-            "markdownCss": "${FILE:theme.css}"
-          },
-          "title": "Weather",
-          "showTitleIcon": false,
-          "iconColor": "rgba(0, 0, 0, 0.87)",
-          "iconSize": "24px",
-          "titleTooltip": "",
-          "dropShadow": false,
-          "enableFullscreen": false,
-          "widgetStyle": {
-            "border": "1px solid #1f2937",
-            "borderRadius": "8px"
-          },
-          "titleStyle": {
-            "fontSize": "16px",
-            "fontWeight": 400
-          },
-          "showLegend": false
-        }
-      },
-      "c1acde45-9378-5ab8-a004-84635dac232b": {
-        "id": "c1acde45-9378-5ab8-a004-84635dac232b",
-        "typeFullFqn": "system.cards.markdown_card",
-        "type": "latest",
-        "sizeX": 8,
-        "sizeY": 7,
-        "config": {
-          "datasources": [
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "building",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "monthly_budget",
-                  "type": "attribute",
-                  "label": "monthly_budget",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "month_cost_cad",
-                  "type": "attribute",
-                  "label": "month_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "month_projected_cost_cad",
-                  "type": "attribute",
-                  "label": "month_projected_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "month_budget_used_pct",
-                  "type": "attribute",
-                  "label": "month_budget_used_pct",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "month_avg_daily_cost_cad",
-                  "type": "attribute",
-                  "label": "month_avg_daily_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "month_days_left",
-                  "type": "attribute",
-                  "label": "month_days_left",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "month_updated_at",
-                  "type": "attribute",
-                  "label": "month_updated_at",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "month_unknown",
-                  "type": "attribute",
-                  "label": "month_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_cost_cad",
-                  "type": "attribute",
-                  "label": "today_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "yesterday_same_time_cost_cad",
-                  "type": "attribute",
-                  "label": "yesterday_same_time_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_unknown",
-                  "type": "attribute",
-                  "label": "today_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            }
-          ],
-          "showTitle": false,
-          "backgroundColor": "#111827",
-          "color": "#e5e7eb",
-          "padding": "8px",
-          "settings": {
-            "useMarkdownTextFunction": true,
-            "markdownTextPattern": "",
-            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/budget.js}",
-            "applyDefaultMarkdownStyle": false,
-            "markdownCss": "${FILE:theme.css}"
-          },
-          "title": "Budget",
-          "showTitleIcon": false,
-          "iconColor": "rgba(0, 0, 0, 0.87)",
-          "iconSize": "24px",
-          "titleTooltip": "",
-          "dropShadow": false,
-          "enableFullscreen": false,
-          "widgetStyle": {
-            "border": "1px solid #1f2937",
-            "borderRadius": "8px"
-          },
-          "titleStyle": {
-            "fontSize": "16px",
-            "fontWeight": 400
-          },
-          "showLegend": false
-        }
-      },
-      "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba": {
-        "id": "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba",
-        "typeFullFqn": "system.cards.markdown_card",
-        "type": "latest",
-        "sizeX": 16,
-        "sizeY": 7,
-        "config": {
-          "datasources": [
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "circuits",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "label",
-                  "type": "entityField",
-                  "label": "label",
-                  "color": "#9ca3af",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_energy_kwh",
-                  "type": "attribute",
-                  "label": "today_energy_kwh",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_cost_cad",
-                  "type": "attribute",
-                  "label": "today_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "today_unknown",
-                  "type": "attribute",
-                  "label": "today_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "twin_7d_energy_kwh",
-                  "type": "attribute",
-                  "label": "twin_7d_energy_kwh",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "twin_7d_cost_cad",
-                  "type": "attribute",
-                  "label": "twin_7d_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "twin_energy_kwh",
-                  "type": "attribute",
-                  "label": "twin_energy_kwh",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "twin_cost_cad",
-                  "type": "attribute",
-                  "label": "twin_cost_cad",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "twin_unknown",
-                  "type": "attribute",
-                  "label": "twin_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            }
-          ],
-          "showTitle": false,
-          "backgroundColor": "#111827",
-          "color": "#e5e7eb",
-          "padding": "8px",
-          "settings": {
-            "useMarkdownTextFunction": true,
-            "markdownTextPattern": "",
-            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/circuit_cost.js}",
-            "applyDefaultMarkdownStyle": false,
-            "markdownCss": "${FILE:theme.css}"
-          },
-          "title": "Circuit Cost",
-          "showTitleIcon": false,
-          "iconColor": "rgba(0, 0, 0, 0.87)",
-          "iconSize": "24px",
-          "titleTooltip": "",
-          "dropShadow": false,
-          "enableFullscreen": false,
-          "widgetStyle": {
-            "border": "1px solid #1f2937",
-            "borderRadius": "8px"
-          },
-          "titleStyle": {
-            "fontSize": "16px",
-            "fontWeight": 400
-          },
-          "showLegend": false
-        }
-      },
       "39891c99-b0a3-5032-8a94-a9abe401d291": {
         "id": "39891c99-b0a3-5032-8a94-a9abe401d291",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
-        "sizeX": 24,
+        "sizeX": 7,
         "sizeY": 2,
         "config": {
           "datasources": [],
@@ -1324,7 +1512,7 @@
           "padding": "8px",
           "settings": {
             "useMarkdownTextFunction": false,
-            "markdownTextPattern": "<div class=\"gate-nav\">Building energy · live and analytics</div>",
+            "markdownTextPattern": "<div class=\"gate-nav\">Patterns over the last 7 to 30 days: when, how much and how weather drives it</div>",
             "markdownTextFunction": "",
             "applyDefaultMarkdownStyle": false,
             "markdownCss": ""
@@ -1373,12 +1561,200 @@
           }
         }
       },
+      "d0eaa393-186b-5203-a26a-2cd6fef752cd": {
+        "id": "d0eaa393-186b-5203-a26a-2cd6fef752cd",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 17,
+        "sizeY": 2,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": "W",
+                  "decimals": 0
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_peak_w",
+                  "type": "attribute",
+                  "label": "today_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_same_time_kwh",
+                  "type": "attribute",
+                  "label": "yesterday_same_time_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "monthly_budget",
+                  "type": "attribute",
+                  "label": "monthly_budget",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_cost_cad",
+                  "type": "attribute",
+                  "label": "month_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_budget_used_pct",
+                  "type": "attribute",
+                  "label": "month_budget_used_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_projected_cost_cad",
+                  "type": "attribute",
+                  "label": "month_projected_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_unknown",
+                  "type": "attribute",
+                  "label": "month_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "weather",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "temperature_c",
+                  "type": "timeseries",
+                  "label": "temperature_c",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "humidity_pct",
+                  "type": "timeseries",
+                  "label": "humidity_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "wind_speed_ms",
+                  "type": "timeseries",
+                  "label": "wind_speed_ms",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/kpi_strip.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Kpi Strip",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
       "3c094d4e-72df-54c8-bb3e-acf067f383f1": {
         "id": "3c094d4e-72df-54c8-bb3e-acf067f383f1",
         "typeFullFqn": "system.time_series_chart",
         "type": "timeseries",
-        "sizeX": 24,
-        "sizeY": 7,
+        "sizeX": 16,
+        "sizeY": 6,
         "config": {
           "datasources": [
             {
@@ -1687,85 +2063,12 @@
           }
         }
       },
-      "4b9452d6-f4c6-55f2-88f4-8d063cb7458b": {
-        "id": "4b9452d6-f4c6-55f2-88f4-8d063cb7458b",
-        "typeFullFqn": "system.cards.markdown_card",
-        "type": "latest",
-        "sizeX": 12,
-        "sizeY": 7,
-        "config": {
-          "datasources": [
-            {
-              "type": "entity",
-              "name": null,
-              "entityAliasId": "building",
-              "filterId": null,
-              "dataKeys": [
-                {
-                  "name": "analytics_heatmap",
-                  "type": "attribute",
-                  "label": "analytics_heatmap",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "analytics_updated_at",
-                  "type": "attribute",
-                  "label": "analytics_updated_at",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                },
-                {
-                  "name": "analytics_unknown",
-                  "type": "attribute",
-                  "label": "analytics_unknown",
-                  "color": "#22d3ee",
-                  "settings": {},
-                  "units": null,
-                  "decimals": null
-                }
-              ]
-            }
-          ],
-          "showTitle": false,
-          "backgroundColor": "#111827",
-          "color": "#e5e7eb",
-          "padding": "8px",
-          "settings": {
-            "useMarkdownTextFunction": true,
-            "markdownTextPattern": "",
-            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/heatmap.js}",
-            "applyDefaultMarkdownStyle": false,
-            "markdownCss": "${FILE:theme.css}"
-          },
-          "title": "Heatmap",
-          "showTitleIcon": false,
-          "iconColor": "rgba(0, 0, 0, 0.87)",
-          "iconSize": "24px",
-          "titleTooltip": "",
-          "dropShadow": false,
-          "enableFullscreen": false,
-          "widgetStyle": {
-            "border": "1px solid #1f2937",
-            "borderRadius": "8px"
-          },
-          "titleStyle": {
-            "fontSize": "16px",
-            "fontWeight": 400
-          },
-          "showLegend": false
-        }
-      },
       "c8e3a069-5fac-55c4-8799-5900f4116b82": {
         "id": "c8e3a069-5fac-55c4-8799-5900f4116b82",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
-        "sizeX": 12,
-        "sizeY": 7,
+        "sizeX": 8,
+        "sizeY": 6,
         "config": {
           "datasources": [
             {
@@ -1833,12 +2136,85 @@
           "showLegend": false
         }
       },
+      "4b9452d6-f4c6-55f2-88f4-8d063cb7458b": {
+        "id": "4b9452d6-f4c6-55f2-88f4-8d063cb7458b",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 24,
+        "sizeY": 5,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "analytics_heatmap",
+                  "type": "attribute",
+                  "label": "analytics_heatmap",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_updated_at",
+                  "type": "attribute",
+                  "label": "analytics_updated_at",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "analytics_unknown",
+                  "type": "attribute",
+                  "label": "analytics_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/heatmap.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Heatmap",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
       "4751f877-9193-58d0-89a2-5923d29abce0": {
         "id": "4751f877-9193-58d0-89a2-5923d29abce0",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 24,
-        "sizeY": 6,
+        "sizeY": 4,
         "config": {
           "datasources": [
             {
@@ -1928,7 +2304,7 @@
         "id": "e7d0544e-7926-5bba-a904-2d88f5332b54",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
-        "sizeX": 24,
+        "sizeX": 7,
         "sizeY": 2,
         "config": {
           "datasources": [],
@@ -1938,7 +2314,7 @@
           "padding": "8px",
           "settings": {
             "useMarkdownTextFunction": false,
-            "markdownTextPattern": "<div class=\"gate-nav\">Building energy · live and analytics</div>",
+            "markdownTextPattern": "<div class=\"gate-nav\">Every monitored circuit: 30-day energy, cost, utilization and weather sensitivity</div>",
             "markdownTextFunction": "",
             "applyDefaultMarkdownStyle": false,
             "markdownCss": ""
@@ -1987,12 +2363,200 @@
           }
         }
       },
+      "fe057238-5e23-543b-9005-c69960e5e654": {
+        "id": "fe057238-5e23-543b-9005-c69960e5e654",
+        "typeFullFqn": "system.cards.markdown_card",
+        "type": "latest",
+        "sizeX": 17,
+        "sizeY": 2,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "monitor",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "main_total_active_power",
+                  "type": "timeseries",
+                  "label": "main_total_active_power",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": "W",
+                  "decimals": 0
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "building",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "today_energy_kwh",
+                  "type": "attribute",
+                  "label": "today_energy_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_cost_cad",
+                  "type": "attribute",
+                  "label": "today_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_peak_w",
+                  "type": "attribute",
+                  "label": "today_peak_w",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "yesterday_same_time_kwh",
+                  "type": "attribute",
+                  "label": "yesterday_same_time_kwh",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "today_unknown",
+                  "type": "attribute",
+                  "label": "today_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "monthly_budget",
+                  "type": "attribute",
+                  "label": "monthly_budget",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_cost_cad",
+                  "type": "attribute",
+                  "label": "month_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_budget_used_pct",
+                  "type": "attribute",
+                  "label": "month_budget_used_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_projected_cost_cad",
+                  "type": "attribute",
+                  "label": "month_projected_cost_cad",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "month_unknown",
+                  "type": "attribute",
+                  "label": "month_unknown",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            },
+            {
+              "type": "entity",
+              "name": null,
+              "entityAliasId": "weather",
+              "filterId": null,
+              "dataKeys": [
+                {
+                  "name": "temperature_c",
+                  "type": "timeseries",
+                  "label": "temperature_c",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "humidity_pct",
+                  "type": "timeseries",
+                  "label": "humidity_pct",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                },
+                {
+                  "name": "wind_speed_ms",
+                  "type": "timeseries",
+                  "label": "wind_speed_ms",
+                  "color": "#22d3ee",
+                  "settings": {},
+                  "units": null,
+                  "decimals": null
+                }
+              ]
+            }
+          ],
+          "showTitle": false,
+          "backgroundColor": "#111827",
+          "color": "#e5e7eb",
+          "padding": "8px",
+          "settings": {
+            "useMarkdownTextFunction": true,
+            "markdownTextPattern": "",
+            "markdownTextFunction": "${FILE:widgets/_lib.js}\n${FILE:widgets/kpi_strip.js}",
+            "applyDefaultMarkdownStyle": false,
+            "markdownCss": "${FILE:theme.css}"
+          },
+          "title": "Kpi Strip",
+          "showTitleIcon": false,
+          "iconColor": "rgba(0, 0, 0, 0.87)",
+          "iconSize": "24px",
+          "titleTooltip": "",
+          "dropShadow": false,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "border": "1px solid #1f2937",
+            "borderRadius": "8px"
+          },
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "showLegend": false
+        }
+      },
       "2a477d8b-d234-519c-a05b-862797167bf4": {
         "id": "2a477d8b-d234-519c-a05b-862797167bf4",
         "typeFullFqn": "system.cards.markdown_card",
         "type": "latest",
         "sizeX": 24,
-        "sizeY": 12,
+        "sizeY": 13,
         "config": {
           "datasources": [
             {
@@ -2173,7 +2737,7 @@
         "typeFullFqn": "system.time_series_chart",
         "type": "timeseries",
         "sizeX": 24,
-        "sizeY": 8,
+        "sizeY": 7,
         "config": {
           "datasources": [
             {
@@ -2448,64 +3012,92 @@
           "main": {
             "widgets": {
               "4f16e9cd-9139-5593-bffd-6258ca548441": {
-                "sizeX": 24,
+                "sizeX": 7,
                 "sizeY": 2,
                 "row": 0,
-                "col": 0
+                "col": 0,
+                "mobileOrder": 1,
+                "mobileHeight": 1
+              },
+              "be3e1c6b-78ee-5f12-bfb2-d97cb05954f1": {
+                "sizeX": 17,
+                "sizeY": 2,
+                "row": 0,
+                "col": 7,
+                "mobileOrder": 2,
+                "mobileHeight": 3
               },
               "235c6574-47dc-5fc4-9c4d-9fed75d7c4f2": {
-                "sizeX": 10,
-                "sizeY": 6,
+                "sizeX": 12,
+                "sizeY": 5,
                 "row": 2,
-                "col": 0
-              },
-              "eedf1ce7-938d-58ae-b425-98507c16348a": {
-                "sizeX": 7,
-                "sizeY": 6,
-                "row": 2,
-                "col": 10
-              },
-              "2223c29d-d6da-56b7-81c2-07506e8ea021": {
-                "sizeX": 7,
-                "sizeY": 6,
-                "row": 2,
-                "col": 17
+                "col": 0,
+                "mobileOrder": 3,
+                "mobileHeight": 6
               },
               "e6ba45a9-e994-5e7a-bd9e-a1a5d1e0176b": {
-                "sizeX": 7,
-                "sizeY": 6,
-                "row": 8,
-                "col": 0
-              },
-              "7d4af089-89f6-5194-a98b-dadde9b95a3d": {
-                "sizeX": 10,
-                "sizeY": 3,
-                "row": 8,
-                "col": 7
-              },
-              "608e0507-705d-52f8-a79a-03112c585b76": {
-                "sizeX": 10,
-                "sizeY": 3,
-                "row": 11,
-                "col": 7
+                "sizeX": 6,
+                "sizeY": 5,
+                "row": 2,
+                "col": 12,
+                "mobileOrder": 4,
+                "mobileHeight": 5
               },
               "1478400a-43b7-5910-8ea4-a37f03418279": {
-                "sizeX": 7,
-                "sizeY": 6,
-                "row": 8,
-                "col": 17
-              },
-              "c1acde45-9378-5ab8-a004-84635dac232b": {
-                "sizeX": 8,
-                "sizeY": 7,
-                "row": 14,
-                "col": 0
+                "sizeX": 6,
+                "sizeY": 5,
+                "row": 2,
+                "col": 18,
+                "mobileOrder": 9,
+                "mobileHeight": 5
               },
               "88f412b9-3bf4-545e-b2f0-4bfd232fd2ba": {
-                "sizeX": 16,
-                "sizeY": 7,
-                "row": 14,
-                "col": 8
+                "sizeX": 12,
+                "sizeY": 9,
+                "row": 7,
+                "col": 0,
+                "mobileOrder": 6,
+                "mobileHeight": 19
+              },
+              "eedf1ce7-938d-58ae-b425-98507c16348a": {
+                "sizeX": 6,
+                "sizeY": 4,
+                "row": 7,
+                "col": 12,
+                "mobileOrder": 10,
+                "mobileHeight": 3
+              },
+              "c1acde45-9378-5ab8-a004-84635dac232b": {
+                "sizeX": 6,
+                "sizeY": 5,
+                "row": 7,
+                "col": 18,
+                "mobileOrder": 5,
+                "mobileHeight": 5
+              },
+              "2223c29d-d6da-56b7-81c2-07506e8ea021": {
+                "sizeX": 6,
+                "sizeY": 5,
+                "row": 11,
+                "col": 12,
+                "mobileOrder": 11,
+                "mobileHeight": 5
+              },
+              "608e0507-705d-52f8-a79a-03112c585b76": {
+                "sizeX": 6,
+                "sizeY": 4,
+                "row": 12,
+                "col": 18,
+                "mobileOrder": 8,
+                "mobileHeight": 4
+              },
+              "7d4af089-89f6-5194-a98b-dadde9b95a3d": {
+                "sizeX": 24,
+                "sizeY": 4,
+                "row": 16,
+                "col": 0,
+                "mobileOrder": 7,
+                "mobileHeight": 5
               }
             },
             "gridSettings": {
@@ -2514,7 +3106,9 @@
               "rowHeight": 50,
               "margin": 10,
               "outerMargin": true,
-              "layoutType": "default"
+              "layoutType": "default",
+              "mobileAutoFillHeight": false,
+              "mobileRowHeight": 50
             }
           }
         }
@@ -2526,34 +3120,52 @@
           "main": {
             "widgets": {
               "39891c99-b0a3-5032-8a94-a9abe401d291": {
-                "sizeX": 24,
+                "sizeX": 7,
                 "sizeY": 2,
                 "row": 0,
-                "col": 0
+                "col": 0,
+                "mobileOrder": 1,
+                "mobileHeight": 1
+              },
+              "d0eaa393-186b-5203-a26a-2cd6fef752cd": {
+                "sizeX": 17,
+                "sizeY": 2,
+                "row": 0,
+                "col": 7,
+                "mobileOrder": 2,
+                "mobileHeight": 3
               },
               "3c094d4e-72df-54c8-bb3e-acf067f383f1": {
-                "sizeX": 24,
-                "sizeY": 7,
+                "sizeX": 16,
+                "sizeY": 6,
                 "row": 2,
-                "col": 0
-              },
-              "4b9452d6-f4c6-55f2-88f4-8d063cb7458b": {
-                "sizeX": 12,
-                "sizeY": 7,
-                "row": 9,
-                "col": 0
+                "col": 0,
+                "mobileOrder": 3,
+                "mobileHeight": 6
               },
               "c8e3a069-5fac-55c4-8799-5900f4116b82": {
-                "sizeX": 12,
-                "sizeY": 7,
-                "row": 9,
-                "col": 12
+                "sizeX": 8,
+                "sizeY": 6,
+                "row": 2,
+                "col": 16,
+                "mobileOrder": 5,
+                "mobileHeight": 5
+              },
+              "4b9452d6-f4c6-55f2-88f4-8d063cb7458b": {
+                "sizeX": 24,
+                "sizeY": 5,
+                "row": 8,
+                "col": 0,
+                "mobileOrder": 4,
+                "mobileHeight": 5
               },
               "4751f877-9193-58d0-89a2-5923d29abce0": {
                 "sizeX": 24,
-                "sizeY": 6,
-                "row": 16,
-                "col": 0
+                "sizeY": 4,
+                "row": 13,
+                "col": 0,
+                "mobileOrder": 6,
+                "mobileHeight": 12
               }
             },
             "gridSettings": {
@@ -2562,7 +3174,9 @@
               "rowHeight": 50,
               "margin": 10,
               "outerMargin": true,
-              "layoutType": "default"
+              "layoutType": "default",
+              "mobileAutoFillHeight": false,
+              "mobileRowHeight": 50
             }
           }
         }
@@ -2574,22 +3188,36 @@
           "main": {
             "widgets": {
               "e7d0544e-7926-5bba-a904-2d88f5332b54": {
-                "sizeX": 24,
+                "sizeX": 7,
                 "sizeY": 2,
                 "row": 0,
-                "col": 0
+                "col": 0,
+                "mobileOrder": 1,
+                "mobileHeight": 1
+              },
+              "fe057238-5e23-543b-9005-c69960e5e654": {
+                "sizeX": 17,
+                "sizeY": 2,
+                "row": 0,
+                "col": 7,
+                "mobileOrder": 2,
+                "mobileHeight": 3
               },
               "2a477d8b-d234-519c-a05b-862797167bf4": {
                 "sizeX": 24,
-                "sizeY": 12,
+                "sizeY": 13,
                 "row": 2,
-                "col": 0
+                "col": 0,
+                "mobileOrder": 4,
+                "mobileHeight": 50
               },
               "b406bf7e-f510-5526-8786-8f7a52536729": {
                 "sizeX": 24,
-                "sizeY": 8,
-                "row": 14,
-                "col": 0
+                "sizeY": 7,
+                "row": 15,
+                "col": 0,
+                "mobileOrder": 3,
+                "mobileHeight": 6
               }
             },
             "gridSettings": {
@@ -2598,7 +3226,9 @@
               "rowHeight": 50,
               "margin": 10,
               "outerMargin": true,
-              "layoutType": "default"
+              "layoutType": "default",
+              "mobileAutoFillHeight": false,
+              "mobileRowHeight": 50
             }
           }
         }
