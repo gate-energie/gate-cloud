@@ -155,18 +155,27 @@
    Wide: a left-to-right tree. Phone: a top-down tree. Live links carry a slow dash. */
 .gate-flow { --gate-line: rgba(34, 211, 238, .35); display: flex; align-items: center; flex: 1; min-height: 0; }
 .gate-flow-source { flex: none; display: flex; align-items: center; }
-.gate-flow-link { flex: 0 0 28px; height: 2px; background: var(--gate-line); }
-.gate-flow-live {
-  background: linear-gradient(90deg, var(--gate-energy) 0 50%, transparent 50% 100%) 0 0 / 10px 2px repeat-x, var(--gate-line);
+.gate-flow-link { position: relative; flex: 0 0 28px; height: 2px; overflow: hidden; background: var(--gate-line); }
+/* A live link carries a dashed stripe one dash period longer than the link, slid by transform
+   (composited, no repaint per frame). */
+.gate-flow-live::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -10px;
+  right: 0;
+  background: repeating-linear-gradient(90deg, var(--gate-energy) 0 5px, transparent 5px 10px);
+  will-change: transform;
   animation: gate-flow-dash 1.2s linear infinite;
 }
 @keyframes gate-flow-dash {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 10px 0, 0 0; }
+  from { transform: translateX(0); }
+  to { transform: translateX(10px); }
 }
 @keyframes gate-flow-drop {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 0 10px, 0 0; }
+  from { transform: translateY(0); }
+  to { transform: translateY(10px); }
 }
 .gate-flow-trunk { flex: 0 1 32px; min-width: 12px; }
 .gate-flow-node {
@@ -359,8 +368,9 @@
   .gate-flow-source .gate-flow-value { font-size: 16px; }
   .gate-flow-source .gate-flow-sub { margin-left: auto; }
   .gate-flow-source > .gate-flow-link, .gate-flow-trunk { flex: none; width: 2px; height: 12px; min-width: 0; margin-left: 20px; }
-  .gate-flow-source > .gate-flow-live, .gate-flow-trunk.gate-flow-live {
-    background: linear-gradient(180deg, var(--gate-energy) 0 50%, transparent 50% 100%) 0 0 / 2px 10px repeat-y, var(--gate-line);
+  .gate-flow-source > .gate-flow-live::after, .gate-flow-trunk.gate-flow-live::after {
+    top: -10px; left: 0;
+    background: repeating-linear-gradient(180deg, var(--gate-energy) 0 5px, transparent 5px 10px);
     animation-name: gate-flow-drop;
   }
   .gate-flow-trunk { height: 6px; }
@@ -378,5 +388,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gate-flow-live { animation: none; }
+  .gate-flow-live::after { animation: none; }
 }

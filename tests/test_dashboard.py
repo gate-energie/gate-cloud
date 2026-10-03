@@ -683,3 +683,14 @@ def test_kpi_values_wrap_instead_of_clipping():
         assert "overflow: hidden" not in rule and "nowrap" not in rule and "ellipsis" not in rule, selector
     assert "flex-wrap: wrap" in _rule(top, ".gate-kpi-value")
 
+
+def test_flow_animation_moves_a_stripe_with_transform_and_respects_reduced_motion():
+    top, media = _css_blocks()
+    frames = re.findall(r"@keyframes\s+([\w-]+)\s*\{(.*?\})\s*\}", top, flags=re.S)
+    assert {name for name, _ in frames} == {"gate-flow-dash", "gate-flow-drop"}
+    for _, body in frames:
+        assert "transform: translate" in body and "background-position" not in body
+    assert "background-position" not in top + "".join(media.values())
+    assert "overflow: hidden" in _rule(top, ".gate-flow-link")
+    assert "animation: gate-flow-dash" in _rule(top, ".gate-flow-live::after")
+    assert "animation: none" in _rule(media["(prefers-reduced-motion: reduce)"], ".gate-flow-live::after")
