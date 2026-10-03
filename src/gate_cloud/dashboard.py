@@ -30,6 +30,7 @@ import re
 import sys
 import zlib
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 PALETTE = [
@@ -46,6 +47,11 @@ ASSET_TYPES_PLACEHOLDER = "${CIRCUIT_ASSET_TYPES}"
 POWER_KEYS_PLACEHOLDER = "${CIRCUIT_POWER_KEYS}"
 BUILDING_TYPES = ["Building"]
 _GATE_PLACEHOLDER = re.compile(r"\$\{[A-Z][A-Z0-9_]*\}")
+_FILE_REF = re.compile(r"\$\{FILE:([^}]*)\}")
+# Attribute-reading keys on assetType/deviceType aliases must be typed "attribute";
+# ThingsFlow does not resolve other scopes there.
+TYPED_ALIASES = {"assetType", "deviceType"}
+KEY_TYPES = {"attribute", "timeseries", "entityField"}
 
 
 class TemplateError(ValueError):
@@ -111,15 +117,46 @@ def render(template: dict, monitor_id: str, weather_id: str,
     return out
 
 
-def templatize(dashboard: dict, monitor_id: str, weather_id: str) -> dict:
+def load_template(directory: Path) -> dict:
+    """Read `dashboard.json` from a template directory and inline every
+    `${FILE:<relpath>}` inside its strings with that file's UTF-8 text."""
+    root = Path(directory).resolve()
+    try:
+        template = json.loads((root / "dashboard.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise TemplateError(f"cannot read dashboard.json in {root}: {exc}") from exc
+
+    def read(match: re.Match) -> str:
+        rel = match.group(1)
+        path = (root / rel).resolve()
+        if Path(rel).is_absolute() or not path.is_relative_to(root):
+            raise TemplateError(f"file reference {rel!r} escapes the template directory")
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise TemplateError(f"file reference {rel!r} cannot be read: {exc}") from exc
+
+    out = _map(template, lambda node: _FILE_REF.sub(read, node) if isinstance(node, str) else node)
+    if "${FILE:" in json.dumps(out, ensure_ascii=False):
+        raise TemplateError("a ${FILE:...} reference survived loading (nested or malformed)")
+    return out
+
+
+def templatize(dashboard: dict, monitor_id: str, weather_id: str,
+               files: dict[str, str] | None = None) -> dict:
     if not monitor_id or not weather_id:
         raise TemplateError("monitor and weather ids must not be empty")
     if not isinstance(dashboard.get("configuration"), dict):
         raise TemplateError("the export has no configuration")
     found = {"datasource": False, "asset_types": False}
+    # longest first, so a file embedded in a longer body is not split by its shorter part
+    by_size = sorted(((rel, text) for rel, text in (files or {}).items() if text),
+                     key=lambda item: len(item[1]), reverse=True)
 
     def back(node: Any) -> Any:
         if isinstance(node, str):
+            for rel, text in by_size:
+                node = node.replace(text, "${FILE:" + rel + "}")
             return node.replace(monitor_id, "${MONITOR_DEVICE_ID}").replace(weather_id, "${WEATHER_DEVICE_ID}")
         if isinstance(node, dict):
             if node.get("name") == CIRCUITS_SOURCE and "dataKeys" in node:
@@ -139,7 +176,7 @@ def templatize(dashboard: dict, monitor_id: str, weather_id: str) -> dict:
     return out
 
 
-def unsupported(dashboard: dict) -> list[str]:
+def unsupported(dashboard: dict, check_labels: bool = True) -> list[str]:
     config = dashboard.get("configuration", {})
     aliases = config.get("entityAliases", {})
     problems = []
@@ -155,6 +192,17 @@ def unsupported(dashboard: dict) -> list[str]:
         timeseries = widget.get("typeFullFqn") in TIMESERIES_FQNS or widget.get("type") == "timeseries"
         if timeseries and kinds - {"singleEntity"}:
             problems.append(f"widget {widget_id!r}: time-series widget needs a singleEntity alias")
+        for ds in widget.get("config", {}).get("datasources", []):
+            if alias_type.get(ds.get("entityAliasId")) not in TYPED_ALIASES or not isinstance(ds.get("dataKeys"), list):
+                continue
+            for key in ds["dataKeys"]:
+                name = key.get("name")
+                if key.get("type") not in KEY_TYPES:
+                    problems.append(f"widget {widget_id!r}: data key {name!r} has type {key.get('type')!r}, "
+                                    "expected attribute, timeseries or entityField")
+                if check_labels and key.get("label") != name:
+                    problems.append(f"widget {widget_id!r}: data key {name!r} has label {key.get('label')!r}; "
+                                    "label must equal name")
         text = json.dumps(widget.get("config", {}), ensure_ascii=False)
         if "singleEntity" in kinds and ("${entityName}" in text or "${entityLabel}" in text):
             problems.append(f"widget {widget_id!r}: ${{entityName}}/${{entityLabel}} on a singleEntity alias shows the id")
@@ -168,9 +216,15 @@ def main(argv: list[str] | None = None) -> None:
     cmd.add_argument("export")
     cmd.add_argument("monitor_id")
     cmd.add_argument("weather_id")
+    cmd.add_argument("--files", metavar="DIR", help="template directory whose files are restored as ${FILE:...} references")
     args = parser.parse_args(argv)
+    files = None
+    if args.files:
+        root = Path(args.files)
+        files = {p.relative_to(root).as_posix(): p.read_text(encoding="utf-8")
+                 for p in sorted(root.rglob("*")) if p.is_file() and p.name != "dashboard.json"}
     with open(args.export, encoding="utf-8") as f:
-        template = templatize(json.load(f), args.monitor_id, args.weather_id)
+        template = templatize(json.load(f), args.monitor_id, args.weather_id, files)
     json.dump(template, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
 

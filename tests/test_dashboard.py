@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from gate_cloud.dashboard import PALETTE, CircuitSeries, TemplateError, main, render, templatize, unsupported
+from gate_cloud.dashboard import PALETTE, CircuitSeries, TemplateError, load_template, main, render, templatize, unsupported
 
 TEMPLATE = {
     "title": "GATE — Operación",
@@ -131,7 +131,9 @@ def test_real_template_renders_and_is_supported():
     assert out["title"] == "GATE — Operación"
     states = out["configuration"]["states"]
     assert set(states) == {"operation", "circuits", "weather"} and states["operation"]["root"] is True
-    assert unsupported(out) == []
+    # the legacy single-file template predates the label == name rule (removed with it in Task 7)
+    assert unsupported(out, check_labels=False) == []
+    assert any("label" in p for p in unsupported(out))
     assert templatize(out, "dev-1", "wx-1") == REAL
 
 
@@ -197,3 +199,88 @@ def test_widget_with_timeseries_key_type_needs_a_single_entity_alias():
     bad["configuration"]["widgets"]["w6"] = {"typeFullFqn": "custom.chart", "type": "timeseries", "config": {"datasources": [
         {"type": "entity", "entityAliasId": "circuits", "dataKeys": []}]}}
     assert any("w6" in p for p in unsupported(bad))
+
+
+def _dir(tmp_path, dashboard, files):
+    (tmp_path / "dashboard.json").write_text(json.dumps(dashboard), encoding="utf-8")
+    for rel, text in files.items():
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(text, encoding="utf-8")
+    return tmp_path
+
+
+FILES = {"widgets/_lib.js": "const lib = 1;", "widgets/a.js": "return lib + 'á';"}
+REFS = "${FILE:widgets/_lib.js}\n${FILE:widgets/a.js}"
+
+
+def _with_card(text):
+    out = copy.deepcopy(TEMPLATE)
+    out["configuration"]["widgets"]["w2"]["config"]["settings"] = {"markdownTextFunction": text}
+    return out
+
+
+def _rendered_card(text):
+    out = rendered()
+    out["configuration"]["widgets"]["w2"]["config"]["settings"] = {"markdownTextFunction": text}
+    return out
+
+
+def test_load_template_inlines_every_file_reference(tmp_path):
+    loaded = load_template(_dir(tmp_path, _with_card(REFS), FILES))
+    assert loaded["configuration"]["widgets"]["w2"]["config"]["settings"]["markdownTextFunction"] == \
+        "const lib = 1;\nreturn lib + 'á';"
+    assert "${FILE:" not in json.dumps(loaded)
+
+
+def test_load_template_names_a_missing_file(tmp_path):
+    with pytest.raises(TemplateError, match="widgets/nope.js"):
+        load_template(_dir(tmp_path, _with_card("${FILE:widgets/nope.js}"), {}))
+
+
+@pytest.mark.parametrize("rel", ["../x", "widgets/../../x", "/etc/passwd"])
+def test_load_template_refuses_paths_outside_the_directory(tmp_path, rel):
+    (tmp_path.parent / "x").write_text("secret", encoding="utf-8")
+    with pytest.raises(TemplateError, match="x|passwd"):
+        load_template(_dir(tmp_path, _with_card("${FILE:" + rel + "}"), {}))
+
+
+def test_templatize_restores_file_references_longest_first(tmp_path):
+    files = {"widgets/_lib.js": "const lib = 1;", "widgets/a.js": "const lib = 1;\nreturn lib;"}
+    body = "const lib = 1;\nreturn lib;"
+    out = templatize(_rendered_card(body), "dev-1", "wx-1", files)
+    assert out["configuration"]["widgets"]["w2"]["config"]["settings"]["markdownTextFunction"] == "${FILE:widgets/a.js}"
+    both = "const lib = 1;\n" + "return lib + 'á';"
+    out = templatize(_rendered_card(both), "dev-1", "wx-1", FILES)
+    assert out["configuration"]["widgets"]["w2"]["config"]["settings"]["markdownTextFunction"] == REFS
+
+
+def test_templatize_cli_restores_references_from_a_directory(tmp_path, capsys):
+    tdir = tmp_path / "t"
+    tdir.mkdir()
+    for rel, text in FILES.items():
+        (tdir / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tdir / rel).write_text(text, encoding="utf-8")
+    export = tmp_path / "export.json"
+    export.write_text(json.dumps(_rendered_card("const lib = 1;\nreturn lib + 'á';")), encoding="utf-8")
+    main(["templatize", str(export), "dev-1", "wx-1", "--files", str(tdir)])
+    got = json.loads(capsys.readouterr().out)
+    assert got["configuration"]["widgets"]["w2"]["config"]["settings"]["markdownTextFunction"] == REFS
+
+
+def _with_key(alias, key):
+    bad = copy.deepcopy(rendered())
+    bad["configuration"]["widgets"]["w7"] = {"typeFullFqn": "system.cards.entities_table", "config": {"datasources": [
+        {"type": "entity", "entityAliasId": alias, "dataKeys": [key]}]}}
+    return unsupported(bad)
+
+
+def test_attribute_keys_on_type_aliases_must_be_type_attribute():
+    for kind in ("SERVER_SCOPE", "SERVER_ATTRIBUTE", "function"):
+        assert any("w7" in p for p in _with_key("circuits", {"name": "twin_cost_cad", "label": "twin_cost_cad", "type": kind}))
+    for kind in ("attribute", "timeseries", "entityField"):
+        assert _with_key("circuits", {"name": "twin_cost_cad", "label": "twin_cost_cad", "type": kind}) == []
+
+
+def test_data_key_label_must_equal_name_on_type_aliases():
+    problems = _with_key("building", {"name": "month_cost_cad", "label": "Costo", "type": "attribute"})
+    assert any("w7" in p and "label" in p for p in problems)

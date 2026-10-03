@@ -229,7 +229,7 @@ def thingsflow_dashboard(
                          sorted({s.profile for s in branches}))
         except TemplateError as error:
             raise dg.Failure(f"dashboard template: {error}") from error
-        problems = unsupported(out)
+        problems = unsupported(out, check_labels=False)  # legacy single-file template; drop with it (Task 7)
         if problems:
             raise dg.Failure("dashboard uses what ThingsFlow cannot serve: " + "; ".join(problems))
         existing = session.dashboard(out["title"])
