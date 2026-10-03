@@ -110,3 +110,21 @@ test("strength labels a correlation coefficient, null when unknown", () => {
   assert.equal(gate.strength(-0.1), "Low");
   for (const bad of ["", null, undefined, "x"]) assert.equal(gate.strength(bad), null);
 });
+
+test("known hides a value its group lists as unknown", () => {
+  const row = { today_energy_kwh: "12.4", today_cost_cad: "1.85", today_unknown: "today_cost_cad,today_peak_w" };
+  assert.equal(gate.known(row, "today_energy_kwh", "today_unknown"), "12.4");
+  assert.equal(gate.known(row, "today_cost_cad", "today_unknown"), null);
+  // Only whole names match; "" lists nothing.
+  assert.equal(gate.known({ a_b: 1, u: "a" }, "a_b", "u"), 1);
+  assert.equal(gate.known({ twin_quality: "", twin_unknown: "" }, "twin_quality", "twin_unknown"), "");
+  assert.equal(gate.known({ x: 0 }, "x", "missing_unknown"), 0);
+  assert.equal(gate.known({ x: "1", u: null }, "x", "u"), "1");
+  for (const bad of [null, undefined, "row"]) assert.equal(gate.known(bad, "x", "u"), null);
+  assert.equal(gate.known({}, "x", "u"), undefined);
+});
+
+test("esc also escapes Angular template braces and @", () => {
+  // ThingsBoard compiles markdown HTML as an Angular template: {{ }} and @if would run.
+  assert.equal(gate.esc("{{a}} @if"), "&#123;&#123;a&#125;&#125; &#64;if");
+});

@@ -49,7 +49,16 @@ gate.money = function (value, decimals) {
 gate.esc = function (text) {
   return String(text === null || text === undefined ? "" : text)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+    // ThingsBoard compiles markdown HTML as an Angular template: no {{ }} or @-blocks from data.
+    .replace(/\{/g, "&#123;").replace(/\}/g, "&#125;").replace(/@/g, "&#64;");
+};
+// A value is unknown when its group's `*_unknown` attribute lists its key (comma-separated):
+// unknown values are never written (no null), so an old value stays on the entity after it stops being current.
+gate.known = function (row, key, unknownKey) {
+  if (row === null || typeof row !== "object") return null;
+  var listed = String(row[unknownKey] || "").split(",");
+  return listed.indexOf(key) >= 0 ? null : row[key];
 };
 gate.card = function (title, bodyHtml) {
   return '<div class="gate-card"><div class="gate-title">' + gate.esc(title) + "</div>" + bodyHtml + "</div>";
