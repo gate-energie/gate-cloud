@@ -56,6 +56,9 @@
 .gate-down { color: var(--gate-cyan); }
 .gate-red { color: var(--gate-red); }
 .gate-delta { font-size: 12px; font-weight: 500; }
+/* Data age: "updated HH:MM", amber once older than twice the cadence */
+.gate-updated { margin-top: auto; font-size: 10px; letter-spacing: .04em; }
+.gate-stale, .gate-muted.gate-stale { color: var(--gate-amber); }
 
 /* Rows, lists and stats */
 .gate-row, .gate-list-row {

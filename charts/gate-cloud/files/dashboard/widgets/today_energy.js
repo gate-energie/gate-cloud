@@ -1,7 +1,7 @@
 // TODAY'S ENERGY. Classes: gate-big, gate-unit, gate-stats, gate-stat, gate-stat-label,
 // gate-stat-value, gate-delta, gate-amber, gate-ok, gate-subtitle, gate-list, gate-list-row,
 // gate-label, gate-value, gate-muted.
-// Building row: today_energy_kwh, today_cost_cad, yesterday_same_time_kwh, today_unknown;
+// Building row: today_energy_kwh, today_cost_cad, yesterday_same_time_kwh, today_updated_at, today_unknown;
 // circuit rows: label, today_energy_kwh, today_unknown. Today so far is compared with yesterday up to the
 // same local time (yesterday_same_time_kwh), not with the whole of yesterday.
 var building = gate.firstWithKey(data, "yesterday_same_time_kwh") || {};
@@ -30,5 +30,6 @@ var html = '<div class="gate-big">' + gate.fmt(today, 1) + ' <span class="gate-u
   (top.length ? top.map(function (c) {
     return '<div class="gate-list-row"><span class="gate-label">' + gate.esc(c.name) +
       '</span><span class="gate-value">' + gate.fmt(c.kwh, 1, "kWh") + "</span></div>";
-  }).join("") : '<div class="gate-muted">—</div>') + "</div>";
+  }).join("") : '<div class="gate-muted">—</div>') + "</div>" +
+  gate.updated(building.today_updated_at, gate.AGE.today, ctx);
 return gate.card("TODAY'S ENERGY", html);

@@ -76,3 +76,24 @@ gate.strength = function (r) {
   var a = Math.abs(n);
   return a > 0.7 ? "High" : a > 0.4 ? "Moderate" : "Low";
 };
+// Data age. ctx.now (ms) fixes the clock in tests; otherwise the browser's.
+gate.now = function (ctx) {
+  var n = gate.num(ctx && ctx.now);
+  return n === null ? Date.now() : n;
+};
+// Stale past twice the cadence: today_snapshot every 15 min, the forecast hourly, the summary nightly.
+gate.AGE = { today: 30 * 60000, forecast: 2 * 3600000, nightly: 26 * 3600000 };
+gate.clock = function (ms) {
+  var parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date(ms));
+  var get = function (type) { return parts.filter(function (p) { return p.type === type; })[0].value; };
+  return get("hour") + ":" + get("minute");
+};
+// A muted "updated HH:MM" line (America/Toronto); gate-stale when older than maxAgeMs or unknown.
+gate.updated = function (ts, maxAgeMs, ctx) {
+  var t = gate.num(ts);
+  var stale = t === null || gate.now(ctx) - t > maxAgeMs;
+  return '<div class="gate-updated gate-muted' + (stale ? " gate-stale" : "") + '">updated ' +
+    (t === null ? "—" : gate.clock(t)) + "</div>";
+};

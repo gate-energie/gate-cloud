@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { renderCard as renderRaw, real, blank, typed, staleAndBlank } from "./harness.mjs";
 
 // gate.fmt puts a thin space (U+2009) before units; assertions use a plain space.
-const renderCard = (file, data, ctx) => renderRaw(file, data, ctx).replace(/\u2009/g, " ");
+const NOW = 1759510800000; // 2026-10-03T17:00:00Z, 13:00 in Toronto
+const renderCard = (file, data, ctx = { now: NOW }) => renderRaw(file, data, ctx).replace(/\u2009/g, " ");
 const count = (out, re) => (out.match(re) || []).length;
 
 // Heatmap: 0.2 kW at night, 1.0 kW by day, a 2.5 kW peak on Wednesday 18:00, Sunday 03:00 unknown.
@@ -23,6 +24,7 @@ const scatter = Array.from({ length: 10 }, (_, i) => ({
 const building = real("building", {
   entityName: "GATE", entityType: "ASSET",
   analytics_heatmap: JSON.stringify(heatmap), analytics_scatter: JSON.stringify(scatter),
+  analytics_updated_at: String(NOW - 11 * 3600000 - 15 * 60000),
 });
 
 const circuit = (label, type, values) => real("circuits", {
@@ -230,4 +232,13 @@ test("a stale twin_quality listed as unknown is no flag; \"\" is no flag either"
   // Listed as unknown, the correlations are unknown too, whatever is still stored.
   const stale = renderCard("asset_cards.js", [{ ...solar, twin_corr_temperature: "-0.9" }]);
   assert.match(stale, /Temperature<\/span><span class="gate-value">—/);
+});
+
+test("heatmap and scatter show when the nightly analytics ran", () => {
+  for (const file of ["heatmap.js", "scatter.js"]) {
+    assert.match(renderCard(file, [building]), /<div class="gate-updated gate-muted">updated 01:45<\/div>/);
+    const old = { ...building, analytics_updated_at: String(NOW - 27 * 3600000) };
+    assert.match(renderCard(file, [old]), /gate-stale">updated 10:00</);
+    assert.match(renderCard(file, [{ ...building, analytics_heatmap: "", analytics_scatter: "" }]), /—[\s\S]*updated 01:45/);
+  }
 });

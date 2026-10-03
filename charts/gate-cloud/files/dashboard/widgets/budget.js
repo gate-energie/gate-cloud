@@ -1,7 +1,7 @@
 // MONTHLY BUDGET. Classes: gate-budget, gate-ring, gate-ring-inner, gate-ring-value, unknown,
 // gate-list, gate-list-row, gate-label, gate-value, gate-delta, gate-amber, gate-ok, gate-muted.
 // Building row: monthly_budget, month_cost_cad, month_projected_cost_cad, month_budget_used_pct,
-// month_avg_daily_cost_cad, month_days_left, month_unknown, today_cost_cad, yesterday_same_time_cost_cad, today_unknown.
+// month_avg_daily_cost_cad, month_days_left, month_updated_at, month_unknown, today_cost_cad, yesterday_same_time_cost_cad, today_unknown.
 // Today so far is compared with yesterday up to the same local time, both priced as one day's bill.
 var b = gate.firstWithKey(data, "month_budget_used_pct") || {};
 var M = "month_unknown", T = "today_unknown";
@@ -34,5 +34,5 @@ var html = '<div class="gate-budget"><div class="gate-ring' + (used === null ? "
   row("Avg daily", gate.money(month("month_avg_daily_cost_cad"))) +
   row("Days left", gate.fmt(month("month_days_left"), 0, "days")) +
   row("Today's cost", gate.money(today)) +
-  "</div>" + diffHtml + "</div>";
+  "</div>" + diffHtml + "</div>" + gate.updated(b.month_updated_at, gate.AGE.nightly, ctx);
 return gate.card("MONTHLY BUDGET", html);

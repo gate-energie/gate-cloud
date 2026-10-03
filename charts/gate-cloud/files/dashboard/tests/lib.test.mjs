@@ -128,3 +128,22 @@ test("esc also escapes Angular template braces and @", () => {
   // ThingsBoard compiles markdown HTML as an Angular template: {{ }} and @if would run.
   assert.equal(gate.esc("{{a}} @if"), "&#123;&#123;a&#125;&#125; &#64;if");
 });
+
+test("updated shows HH:MM in Toronto and marks data older than the limit stale", () => {
+  const now = Date.UTC(2026, 9, 3, 17, 0); // 13:00 EDT
+  const ctx = { now };
+  assert.equal(gate.clock(Date.UTC(2026, 9, 3, 4, 5)), "00:05");
+  assert.equal(gate.clock(Date.UTC(2026, 0, 15, 18, 30)), "13:30"); // EST in winter
+  assert.equal(gate.updated(now - 10 * 60000, gate.AGE.today, ctx), '<div class="gate-updated gate-muted">updated 12:50</div>');
+  assert.equal(gate.updated(String(now - 31 * 60000), gate.AGE.today, ctx),
+    '<div class="gate-updated gate-muted gate-stale">updated 12:29</div>');
+  assert.match(gate.updated(now - 119 * 60000, gate.AGE.forecast, ctx), /gate-muted">updated 11:01/);
+  assert.match(gate.updated(now - 121 * 60000, gate.AGE.forecast, ctx), /gate-stale">updated 10:59/);
+  assert.doesNotMatch(gate.updated(now - 25 * 3600000, gate.AGE.nightly, ctx), /gate-stale/);
+  assert.match(gate.updated(now - 27 * 3600000, gate.AGE.nightly, ctx), /gate-stale/);
+  for (const missing of ["", null, undefined]) {
+    assert.equal(gate.updated(missing, gate.AGE.today, ctx), '<div class="gate-updated gate-muted gate-stale">updated —</div>');
+  }
+  assert.equal(gate.now({ now: "5" }), 5);
+  assert.ok(Math.abs(gate.now(undefined) - Date.now()) < 1000);
+});

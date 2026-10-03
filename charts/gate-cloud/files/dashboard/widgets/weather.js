@@ -1,7 +1,7 @@
 // WEATHER OUTLOOK. Classes: gate-big, gate-condition, gate-condition-now, gate-list, gate-list-row, gate-label,
 // gate-value, gate-subtitle, gate-tiles, gate-tile, gate-tile-date, gate-tile-range, gate-muted.
 // Weather row: temperature_c, humidity_pct, wind_speed_ms (time series), forecast (JSON {days, hours}),
-// forecast_unknown.
+// forecast_updated_at, forecast_unknown.
 var weather = gate.firstWithKey(data, "temperature_c") || {};
 var forecast = gate.json(gate.known(weather, "forecast", "forecast_unknown")) || {};
 var days = Array.isArray(forecast.days) ? forecast.days.slice(0, 3) : [];
@@ -23,8 +23,7 @@ var condition = function (raw) {
 };
 // No live weather code is recorded: the forecast hour closest to now stands for "now"
 // (ctx.now lets tests fix the clock), else today's daily code.
-var now = gate.num(ctx && ctx.now);
-if (now === null) now = Date.now();
+var now = gate.now(ctx);
 var nearest = null;
 hours.forEach(function (h) {
   var ts = h ? gate.num(h.ts) : null;
@@ -46,5 +45,6 @@ var html = '<div class="gate-big">' + gate.fmt(weather.temperature_c, 1, "°C") 
   '<div class="gate-list">' + row("Humidity", gate.fmt(weather.humidity_pct, 0, "%")) +
   row("Wind", gate.fmt(weather.wind_speed_ms, 1, "m/s")) + "</div>" +
   '<div class="gate-subtitle">Forecast (3 days)</div>' +
-  (tiles ? '<div class="gate-tiles">' + tiles + "</div>" : '<div class="gate-muted">—</div>');
+  (tiles ? '<div class="gate-tiles">' + tiles + "</div>" : '<div class="gate-muted">—</div>') +
+  gate.updated(weather.forecast_updated_at, gate.AGE.forecast, ctx);
 return gate.card("WEATHER OUTLOOK", html);

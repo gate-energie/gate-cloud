@@ -50,6 +50,8 @@ const building = real("building", {
   yesterday_cost_cad: "9.99", yesterday_energy_kwh: "60", yesterday_same_time_cost_cad: "2.10",
   analytics_scatter: JSON.stringify(scatter),
   analytics_daily: JSON.stringify(scatter.map(({ date, kwh }) => ({ date, kwh }))),
+  today_updated_at: String(NOW - 10 * 60000), month_updated_at: String(NOW - 15 * 3600000),
+  analytics_updated_at: String(NOW - 15 * 3600000),
 });
 const circuit = (label, today, cost, d7, c7, d30, c30) => real("circuits", {
   entityName: label, entityType: "ASSET", label,
@@ -65,6 +67,7 @@ const circuits = [
 const weather = real("weather", {
   entityName: "GATE Weather", entityType: "DEVICE",
   temperature_c: "-1.1", humidity_pct: "55", wind_speed_ms: "2.7", forecast: JSON.stringify(forecast),
+  forecast_updated_at: String(NOW - 55 * 60000),
 });
 
 const cards = {
@@ -77,10 +80,10 @@ const cards = {
   "budget.js": [building],
   "circuit_cost.js": circuits,
 };
-const ctxs = { "power_flow.js": flowCtx, "weather.js": { now: NOW } };
+const ctxs = { "power_flow.js": flowCtx };
 
 for (const [file, data] of Object.entries(cards)) {
-  const ctx = ctxs[file] || {};
+  const ctx = ctxs[file] || { now: NOW };
   test(`${file}: blank values render without exceptions`, () => {
     const out = renderCard(file, blank(data), ctx);
     if (file === "daily_bars.js") assert.match(out, /No data yet/);
@@ -356,4 +359,25 @@ test("power_flow: datasources named after their entity fall back to the monitor 
   assert.match(out, /Other loads<\/div><div class="gate-flow-value">0\.25 kW/);
   assert.match(out, /12\.4 kWh/);
   assert.doesNotMatch(out, /GATE Monitor|DEVICE|dsIndex|\|ts|1759500000|id-GATE/);
+});
+
+test("data age: a muted updated line, stale past twice the cadence", () => {
+  // NOW is 13:00 in Toronto.
+  const cases = [
+    ["today_energy.js", "today_updated_at", 29, 31, 60000],
+    ["budget.js", "month_updated_at", 25, 27, 3600000],
+    ["weather.js", "forecast_updated_at", 119, 121, 60000],
+    ["daily_bars.js", "analytics_updated_at", 25, 27, 3600000],
+  ];
+  for (const [file, key, fresh, old, unit] of cases) {
+    const row = file === "weather.js" ? weather : building;
+    const ok = renderCard(file, [{ ...row, [key]: String(NOW - fresh * unit) }], { now: NOW });
+    assert.match(ok, /<div class="gate-updated gate-muted">updated \d\d:\d\d<\/div>/, file);
+    const stale = renderCard(file, [{ ...row, [key]: String(NOW - old * unit) }], { now: NOW });
+    assert.match(stale, /<div class="gate-updated gate-muted gate-stale">updated \d\d:\d\d<\/div>/, file);
+  }
+  assert.match(renderCard("today_energy.js", cards["today_energy.js"], { now: NOW }), /gate-muted">updated 12:50</);
+  assert.match(renderCard("weather.js", cards["weather.js"], { now: NOW }), /gate-muted">updated 12:05</);
+  assert.match(renderCard("budget.js", cards["budget.js"], { now: NOW }), /gate-muted">updated 22:00</);
+  assert.match(renderCard("daily_bars.js", [{ ...building, analytics_daily: "[]" }], { now: NOW }), /No data yet[\s\S]*updated 22:00/);
 });

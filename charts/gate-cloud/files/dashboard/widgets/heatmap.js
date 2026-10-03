@@ -1,10 +1,11 @@
 // CONSUMPTION HEATMAP. Classes: gate-heat, gate-heat-corner, gate-heat-hour, gate-heat-day,
 // gate-heat-cell, gate-heat-empty, gate-heat-legend, gate-heat-swatch, gate-label, gate-value, gate-muted.
 // Building row: analytics_heatmap (JSON {unit, days: [7 labels], values: [7][24] mean kW or null,
-// samples: [7][24]}) and analytics_unknown; local weekday x hour in America/Toronto. A null cell is unknown and stays empty.
+// samples: [7][24]}), analytics_updated_at and analytics_unknown; local weekday x hour in America/Toronto. A null cell is unknown and stays empty.
 var building = gate.firstWithKey(data, "analytics_heatmap") || {};
 var heat = gate.json(gate.known(building, "analytics_heatmap", "analytics_unknown"));
-if (!heat || !Array.isArray(heat.values)) return gate.card("CONSUMPTION HEATMAP", '<div class="gate-muted">—</div>');
+var age = gate.updated(building.analytics_updated_at, gate.AGE.nightly, ctx);
+if (!heat || !Array.isArray(heat.values)) return gate.card("CONSUMPTION HEATMAP", '<div class="gate-muted">—</div>' + age);
 var unit = typeof heat.unit === "string" && heat.unit ? heat.unit : "kW";
 var days = Array.isArray(heat.days) ? heat.days : [];
 // Five steps from the card background #111827 to the accent #22d3ee.
@@ -44,5 +45,5 @@ grid.forEach(function (row, d) {
 html += '</div><div class="gate-heat-legend"><span class="gate-label">Less</span> ' +
   SCALE.map(function (c) { return '<span class="gate-heat-swatch" style="background:' + c + '"></span>'; }).join("") +
   ' <span class="gate-label">More</span> <span class="gate-label">Max</span> <span class="gate-value">' +
-  gate.esc(gate.fmt(max, 2, unit)) + "</span></div>";
+  gate.esc(gate.fmt(max, 2, unit)) + "</span></div>" + age;
 return gate.card("CONSUMPTION HEATMAP", html);

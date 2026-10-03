@@ -3,13 +3,15 @@
 // gate-label, gate-value, gate-muted.
 // .gate-dot and .gate-trend are absolutely positioned inside .gate-scatter-plot (a 2:1 box):
 // dot left = temperature, bottom = kWh; the trend is a thin div rotated about its left end.
-// Building row: analytics_scatter (JSON list of {date, kwh, temp_mean_c}, one point per day), analytics_unknown.
+// Building row: analytics_scatter (JSON list of {date, kwh, temp_mean_c}, one point per day), analytics_updated_at,
+// analytics_unknown.
 var building = gate.firstWithKey(data, "analytics_scatter") || {};
 var raw = gate.json(gate.known(building, "analytics_scatter", "analytics_unknown"));
 var points = (Array.isArray(raw) ? raw : []).map(function (p) {
   return p && typeof p === "object" ? { date: p.date, x: gate.num(p.temp_mean_c), y: gate.num(p.kwh) } : null;
 }).filter(function (p) { return p && p.x !== null && p.y !== null; });
-if (!points.length) return gate.card("POWER vs TEMPERATURE", '<div class="gate-muted">—</div>');
+var age = gate.updated(building.analytics_updated_at, gate.AGE.nightly, ctx);
+if (!points.length) return gate.card("POWER vs TEMPERATURE", '<div class="gate-muted">—</div>' + age);
 var xs = points.map(function (p) { return p.x; });
 var ys = points.map(function (p) { return p.y; });
 var xmin = Math.min.apply(null, xs), xmax = Math.max.apply(null, xs);
@@ -70,5 +72,5 @@ var html = '<div class="gate-scatter">' +
   '</span><span class="gate-axis gate-axis-x-max">' + gate.fmt(xmax, 1, "°C") + "</span></div>" +
   '<div class="gate-scatter-r"><span class="gate-label">Pearson</span> <span class="gate-value">r = ' +
   (r === null ? "—" : fix(r, 2)) + "</span>" + (strength ? ' <span class="gate-muted">' + strength + "</span>" : "") +
-  "</div></div>";
+  "</div></div>" + age;
 return gate.card("POWER vs TEMPERATURE", html);
