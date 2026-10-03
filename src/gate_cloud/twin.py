@@ -192,7 +192,7 @@ def summary_attributes(
         "twin_max_power_w": m.max_power_w,
         "twin_utilization_pct": m.utilization_pct,
         "twin_coverage_pct": m.coverage_pct,
-        "twin_quality": m.quality,
+        "twin_quality": m.quality or "",  # "" clears a flag left by an earlier window
         "twin_energy_fraction_pct": m.energy_fraction_pct,
         "twin_corr_temperature": pearson(align_hourly(power, temperature), min_pairs),
         "twin_corr_humidity": pearson(align_hourly(power, humidity), min_pairs),

@@ -306,3 +306,7 @@ def test_weather_forecast_needs_the_weather_device(tmp_path):
     with pytest.raises(dg.Failure, match="weather_observations"):
         d.weather_forecast(res["thingsflow"], res["asset_model_file"], res["weather"])
     assert SHARED.attrs == {}
+
+
+def test_known_lists_only_none_as_unknown():
+    assert d._known({"a": "", "b": None, "c": 0}, "x_unknown") == {"a": "", "c": 0, "x_unknown": "b"}

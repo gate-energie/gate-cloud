@@ -91,7 +91,10 @@ def test_summary_writes_twin_attributes(tmp_path):
     # Unknowns are not stored (ThingsFlow would keep the string "null"); they are listed instead.
     assert None not in attrs.values()
     assert "twin_health_score" not in attrs and "twin_overload" not in attrs
-    assert {"twin_health_score", "twin_overload", "twin_quality"} <= set(attrs["twin_unknown"].split(","))
+    assert {"twin_health_score", "twin_overload"} <= set(attrs["twin_unknown"].split(","))
+    # An unflagged circuit stores twin_quality "" (clears an old flag) and does not list it as unknown.
+    assert attrs["twin_quality"] == ""
+    assert "twin_quality" not in attrs["twin_unknown"].split(",")
 
 
 def test_daily_peak_late_in_the_local_day_is_kept(tmp_path):

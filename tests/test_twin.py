@@ -139,6 +139,8 @@ def test_summary_without_rating_has_no_health():
     assert attrs["twin_health_score"] is None and attrs["twin_overload"] is None
     assert attrs["twin_corr_temperature"] is None
     assert attrs["twin_energy_kwh"] == 300.0
+    # Not flagged is written as "", so a flag from an earlier window is cleared.
+    assert attrs["twin_quality"] == ""
     assert attrs["twin_window_start"] == 0 and attrs["twin_window_end"] == window.end_ms
 
 
