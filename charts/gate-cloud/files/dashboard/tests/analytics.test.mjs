@@ -126,8 +126,8 @@ test("scatter: positioned dots, axis range, trend line and Pearson r", () => {
   assert.match(out, /gate-axis-x-max">13\.0 °C/);
   assert.match(out, /gate-axis-y-min">0\.0 kWh/);
   assert.match(out, /gate-axis-y-max">35\.0 kWh/);
-  // From (0 %, 100 %) to (100 %, 48.6 %) in a 2:1 box: 14.4° down, 103.3 % of the width long.
-  assert.match(out, /class="gate-trend" style="left:0\.0%;bottom:100\.0%;width:103\.3%;transform:rotate\(14\.4deg\);transform-origin:0 50%"/);
+  // From (0 %, 100 %) to (100 %, 48.6 %) in a 5:2 box: 11.6° down, 102.1 % of the width long.
+  assert.match(out, /class="gate-trend" style="left:0\.0%;bottom:100\.0%;width:102\.1%;transform:rotate\(11\.6deg\);transform-origin:0 50%"/);
   assert.match(out, /r = -1\.00/);
   assert.match(out, /High/);
 });
@@ -177,7 +177,8 @@ test("breakdown: without known shares the donut is empty", () => {
 test("asset_cards: one tile per circuit sorted by 30-day kWh with health and quality badges", () => {
   const out = renderCard("asset_cards.js", assetRows);
   assert.match(out, /gate-title">ASSETS</);
-  assert.match(out, /grid-template-columns:repeat\(auto-fill, ?minmax\(/);
+  // The tile grid lives in theme.css (auto-fill on wide cards, one column on a phone).
+  assert.match(out, /<div class="gate-assets">/);
   assert.equal(count(out, /class="gate-asset"/g), 4);
   const tiles = out.split('class="gate-asset"').slice(1);
   assert.deepEqual(tiles.map((t) => /gate-asset-name">([^<]*)</.exec(t)[1]), ["Heating", "Water Heater", "Lights", "Solar"]);

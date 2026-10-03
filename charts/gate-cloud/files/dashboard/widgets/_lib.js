@@ -60,8 +60,26 @@ gate.known = function (row, key, unknownKey) {
   var listed = String(row[unknownKey] || "").split(",");
   return listed.indexOf(key) >= 0 ? null : row[key];
 };
-gate.card = function (title, bodyHtml) {
-  return '<div class="gate-card"><div class="gate-title">' + gate.esc(title) + "</div>" + bodyHtml + "</div>";
+// family (optional): "energy", "cost" or "weather" sets the card's accent colour.
+gate.card = function (title, bodyHtml, family) {
+  var cls = family === "energy" || family === "cost" || family === "weather" ? "gate-card gate-" + family : "gate-card";
+  return '<div class="' + cls + '"><div class="gate-title">' + gate.esc(title) + "</div>" + bodyHtml + "</div>";
+};
+// Today so far against yesterday up to the same local time, in percent; a change that rounds
+// to 0.0 % is neutral (muted, no arrow). Returns the gate-delta span.
+gate.deltaPct = function (today, before, suffix) {
+  var t = gate.num(today), b = gate.num(before);
+  var shown = t !== null && b ? Math.round((t - b) / b * 1000) / 10 : null;
+  var tail = suffix ? " " + suffix : "";
+  if (shown === null) return '<span class="gate-delta">—</span>';
+  if (shown === 0) return '<span class="gate-delta gate-muted">' + gate.fmt(0, 1, "%") + tail + "</span>";
+  return '<span class="gate-delta ' + (shown > 0 ? "gate-amber" : "gate-ok") + '">' + (shown > 0 ? "▲ " : "▼ ") +
+    gate.fmt(Math.abs(shown), 1, "%") + tail + "</span>";
+};
+// Budget status colour for a used percentage: green below 80 %, amber below 100 %, red beyond.
+gate.budgetColor = function (used) {
+  var u = gate.num(used);
+  return u === null ? "#1f2937" : u < 80 ? "#22c55e" : u < 100 ? "#f59e0b" : "#ef4444";
 };
 gate.bar = function (fraction, color) {
   var f = gate.num(fraction);

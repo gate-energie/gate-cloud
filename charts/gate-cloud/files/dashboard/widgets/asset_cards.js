@@ -16,7 +16,7 @@ var tiles = gate.withKey(data, "twin_energy_kwh").map(function (r) {
   if (a.kwh === null || b.kwh === null) return a.kwh === null ? (b.kwh === null ? 0 : 1) : -1;
   return b.kwh - a.kwh;
 });
-if (!tiles.length) return gate.card("ASSETS", '<div class="gate-muted">—</div>');
+if (!tiles.length) return gate.card("ASSETS", '<div class="gate-muted">—</div>', "energy");
 var row = function (label, value) {
   return '<div class="gate-list-row"><span class="gate-label">' + label + '</span><span class="gate-value">' + value + "</span></div>";
 };
@@ -25,7 +25,7 @@ var corr = function (value) {
   return s ? gate.fmt(value, 2) + " · " + s : "—";
 };
 var badge = function (cls, text) { return '<span class="gate-badge ' + cls + '">' + text + "</span>"; };
-var html = '<div class="gate-assets" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">' +
+var html = '<div class="gate-assets">' +
   tiles.map(function (t) {
     var r = t.r;
     var rated = gate.num(r.rated_power_w);
@@ -57,4 +57,4 @@ var html = '<div class="gate-assets" style="display:grid;grid-template-columns:r
       row("Humidity", corr(twin(r, "twin_corr_humidity"))) +
       "</div></div>";
   }).join("") + "</div>";
-return gate.card("ASSETS", html);
+return gate.card("ASSETS", html, "energy");

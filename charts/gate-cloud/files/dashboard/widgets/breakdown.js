@@ -22,13 +22,13 @@ var items = gate.withKey(data, "twin_energy_kwh").map(function (r) {
   if (a.kwh === null || b.kwh === null) return a.kwh === null ? (b.kwh === null ? 0 : 1) : -1;
   return b.kwh - a.kwh;
 });
-if (!items.length) return gate.card("APPLIANCE BREAKDOWN", '<div class="gate-muted">—</div>');
+if (!items.length) return gate.card("APPLIANCE BREAKDOWN", '<div class="gate-muted">—</div>', "energy");
 var max = Math.max.apply(null, items.map(function (i) { return i.kwh || 0; }));
 var bars = items.map(function (i) {
   return '<div class="gate-breakdown-row"><div class="gate-breakdown-head"><span class="gate-label">' +
     gate.esc(i.name) + '</span><span class="gate-value">' + gate.fmt(i.kwh, 1, "kWh") + " · " +
     gate.fmt(i.pct, 1, "%") + "</span></div>" +
-    gate.bar(i.kwh === null ? null : max > 0 ? i.kwh / max : 0, "#3b82f6") + "</div>";
+    gate.bar(i.kwh === null ? null : max > 0 ? i.kwh / max : 0, "#22d3ee") + "</div>";
 }).join("");
 var top = items.filter(function (i) { return i.pct !== null; }).slice(0, 6);
 var num = function (n) { return String(Number(n.toFixed(2))); };
@@ -56,4 +56,4 @@ var html = '<div class="gate-breakdown"><div class="gate-breakdown-bars">' + bar
       '<span class="gate-label">' + gate.esc(l.name) + '</span><span class="gate-value">' + gate.fmt(l.pct, 1, "%") +
       "</span></div>";
   }).join("") + "</div></div>";
-return gate.card("APPLIANCE BREAKDOWN", html);
+return gate.card("APPLIANCE BREAKDOWN", html, "energy");

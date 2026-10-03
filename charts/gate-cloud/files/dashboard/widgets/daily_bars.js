@@ -20,7 +20,7 @@ var last = null;
   if (last === null || t > last) last = t;
 });
 var age = gate.updated(building.analytics_updated_at, gate.AGE.nightly, ctx);
-if (last === null) return gate.card("CONSUMPTION — 30 DAYS", '<div class="gate-muted">No data yet</div>' + age);
+if (last === null) return gate.card("CONSUMPTION — 30 DAYS", '<div class="gate-muted">No data yet</div>' + age, "energy");
 var days = [];
 for (var i = 29; i >= 0; i--) {
   var t = last - i * DAY;
@@ -38,4 +38,4 @@ var cols = days.map(function (d) {
 var html = '<div class="gate-cols">' + cols + '</div><div class="gate-cols-legend">' +
   '<span class="gate-label">Max</span> <span class="gate-value">' + gate.fmt(max, 1, "kWh") + "</span> " +
   '<span class="gate-label">Average</span> <span class="gate-value">' + gate.fmt(avg, 1, "kWh") + "</span></div>" + age;
-return gate.card("CONSUMPTION — 30 DAYS", html);
+return gate.card("CONSUMPTION — 30 DAYS", html, "energy");

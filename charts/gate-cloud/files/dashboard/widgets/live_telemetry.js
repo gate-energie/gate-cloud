@@ -13,4 +13,4 @@ var rows = [
 ];
 return gate.card("LIVE TELEMETRY", '<div class="gate-list">' + rows.map(function (r) {
   return '<div class="gate-list-row"><span class="gate-label">' + r[0] + '</span><span class="gate-value">' + r[1] + "</span></div>";
-}).join("") + "</div>");
+}).join("") + "</div>", "energy");

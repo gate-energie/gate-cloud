@@ -147,3 +147,27 @@ test("updated shows HH:MM in Toronto and marks data older than the limit stale",
   assert.equal(gate.now({ now: "5" }), 5);
   assert.ok(Math.abs(gate.now(undefined) - Date.now()) < 1000);
 });
+
+test("card takes an optional data family for its accent; unknown families are ignored", () => {
+  assert.match(gate.card("T", "", "energy"), /^<div class="gate-card gate-energy"><div class="gate-title">T</);
+  assert.match(gate.card("T", "", "cost"), /^<div class="gate-card gate-cost">/);
+  assert.match(gate.card("T", "", "weather"), /^<div class="gate-card gate-weather">/);
+  assert.match(gate.card("T", "", "x\" onclick=\"y"), /^<div class="gate-card"><div/);
+});
+
+test("deltaPct: arrow and colour by direction, neutral when it rounds to 0.0 %, — when unknown", () => {
+  const plain = (s) => s.replace(/ /g, " ");
+  assert.equal(plain(gate.deltaPct(12.4, 10)), '<span class="gate-delta gate-amber">▲ 24.0 %</span>');
+  assert.equal(plain(gate.deltaPct("8", "10", "vs yesterday")), '<span class="gate-delta gate-ok">▼ 20.0 % vs yesterday</span>');
+  assert.equal(plain(gate.deltaPct(10.004, 10)), '<span class="gate-delta gate-muted">0.0 %</span>');
+  for (const [a, b] of [[null, 10], [10, null], [10, 0], ["", "10"]]) {
+    assert.equal(gate.deltaPct(a, b, "x"), '<span class="gate-delta">—</span>');
+  }
+});
+
+test("budgetColor: green below 80 %, amber below 100 %, red beyond, border colour when unknown", () => {
+  assert.equal(gate.budgetColor(79.9), "#22c55e");
+  assert.equal(gate.budgetColor("80"), "#f59e0b");
+  assert.equal(gate.budgetColor(100), "#ef4444");
+  assert.equal(gate.budgetColor(""), "#1f2937");
+});

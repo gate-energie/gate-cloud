@@ -1,5 +1,5 @@
-// WEATHER OUTLOOK. Classes: gate-big, gate-condition, gate-condition-now, gate-list, gate-list-row, gate-label,
-// gate-value, gate-subtitle, gate-tiles, gate-tile, gate-tile-date, gate-tile-range, gate-muted.
+// WEATHER OUTLOOK. Classes: gate-now, gate-big, gate-condition, gate-condition-now, gate-list, gate-list-row, gate-label,
+// gate-value, gate-subtitle, gate-hours, gate-hour, gate-hour-time, gate-hour-temp, gate-tiles, gate-tile, gate-tile-date, gate-tile-range, gate-muted.
 // Weather row: temperature_c, humidity_pct, wind_speed_ms (time series), forecast (JSON {days, hours}),
 // forecast_updated_at, forecast_unknown.
 var weather = gate.firstWithKey(data, "temperature_c") || {};
@@ -34,17 +34,27 @@ var row = function (label, value) {
   return '<div class="gate-list-row"><span class="gate-label">' + label + '</span><span class="gate-value">' + value + "</span></div>";
 };
 var deg = function (v) { var s = gate.fmt(v, 0); return s === "—" ? s : s + "°"; };
+// The next six forecast hours from the current one.
+var next = hours.map(function (h) { return h ? { ts: gate.num(h.ts), temp: h.temp } : null; })
+  .filter(function (h) { return h && h.ts !== null && h.ts > now - 3600000; })
+  .sort(function (a, b) { return a.ts - b.ts; })
+  .slice(0, 6);
+var hourly = next.map(function (h) {
+  return '<div class="gate-hour"><div class="gate-hour-time">' + gate.clock(h.ts) + '</div><div class="gate-hour-temp">' +
+    deg(h.temp) + "</div></div>";
+}).join("");
 var tiles = days.map(function (d) {
   d = d || {};
   var date = typeof d.date === "string" ? d.date.slice(5).replace("-", "/") : "—";
   return '<div class="gate-tile"><div class="gate-tile-date">' + gate.esc(date) + '</div><div class="gate-condition">' +
     condition(d.code) + '</div><div class="gate-tile-range">' + deg(d.tmin) + " / " + deg(d.tmax) + "</div></div>";
 }).join("");
-var html = '<div class="gate-big">' + gate.fmt(weather.temperature_c, 1, "°C") + "</div>" +
-  '<div class="gate-condition gate-condition-now">' + condition(nowCode) + "</div>" +
+var html = '<div class="gate-now"><div class="gate-big">' + gate.fmt(weather.temperature_c, 1, "°C") + "</div>" +
+  '<div class="gate-condition gate-condition-now">' + condition(nowCode) + "</div></div>" +
   '<div class="gate-list">' + row("Humidity", gate.fmt(weather.humidity_pct, 0, "%")) +
   row("Wind", gate.fmt(weather.wind_speed_ms, 1, "m/s")) + "</div>" +
+  (hourly ? '<div class="gate-subtitle">Next hours</div><div class="gate-hours">' + hourly + "</div>" : "") +
   '<div class="gate-subtitle">Forecast (3 days)</div>' +
   (tiles ? '<div class="gate-tiles">' + tiles + "</div>" : '<div class="gate-muted">—</div>') +
   gate.updated(weather.forecast_updated_at, gate.AGE.forecast, ctx);
-return gate.card("WEATHER OUTLOOK", html);
+return gate.card("WEATHER OUTLOOK", html, "weather");

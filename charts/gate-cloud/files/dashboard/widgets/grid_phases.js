@@ -1,6 +1,6 @@
 // GRID & PHASES. Classes: gate-stats, gate-stat, gate-stat-label, gate-stat-value,
 // gate-phases, gate-phase, gate-phase-head, gate-label, gate-value, gate-bar (via gate.bar),
-// gate-list-row, gate-badge, gate-ok, gate-amber.
+// gate-balance, gate-badge, gate-ok, gate-amber.
 // Monitor row: main_phase_{1,2}_active_power, main_phase_{1,2}_voltage, main_total_current;
 // building row: today_peak_w, yesterday_peak_w, today_unknown.
 var monitor = gate.firstWithKey(data, "main_phase_1_active_power") || {};
@@ -29,7 +29,7 @@ var html = '<div class="gate-stats">' +
   stat("Yesterday's peak", gate.fmt(gate.known(building, "yesterday_peak_w", "today_unknown"), 0, "W")) +
   '</div><div class="gate-phases">' +
   phase("Phase 1", p1, monitor.main_phase_1_voltage) + phase("Phase 2", p2, monitor.main_phase_2_voltage) +
-  '</div><div class="gate-list-row"><span class="gate-label">Imbalance</span><span class="gate-value">' +
+  '</div><div class="gate-balance"><span class="gate-label">Imbalance</span><span class="gate-value">' +
   gate.fmt(imbalance, 1, "%") + '</span><span class="gate-label">Spread</span><span class="gate-value">' +
   gate.fmt(spread, 0, "W") + "</span>" + badge + "</div>";
-return gate.card("GRID & PHASES", html);
+return gate.card("GRID & PHASES", html, "energy");

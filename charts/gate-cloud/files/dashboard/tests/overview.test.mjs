@@ -104,6 +104,8 @@ for (const [file, data] of Object.entries(cards)) {
 }
 
 const count = (out, re) => (out.match(re) || []).length;
+// A circuit-cost cell is kWh then $ in two spans; read it as "kWh · $" (the dot is CSS on wide cards).
+const cells = (out) => out.replace(/<span class="gate-kwh">([^<]*)<\/span><span class="gate-money">([^<]*)<\/span>/g, "$1 · $2");
 
 test("power_flow: grid, building, top 4 loads and other loads", () => {
   const out = renderCard("power_flow.js", cards["power_flow.js"], flowCtx);
@@ -281,7 +283,12 @@ test("budget: ring colour and figures", () => {
 });
 
 test("circuit_cost: sorted rows, three periods and totals", () => {
-  const out = renderCard("circuit_cost.js", cards["circuit_cost.js"]);
+  const raw = renderCard("circuit_cost.js", cards["circuit_cost.js"]);
+  assert.match(raw, /<div class="gate-table-cell"><span class="gate-kwh">180\.0 kWh<\/span><span class="gate-money">\$18\.00<\/span><\/div>/);
+  // Name and 30-day bar share one line (the phone list keeps them together above the periods).
+  assert.match(raw, /<div class="gate-table-name"><span class="gate-table-label" title="Heating">Heating<\/span><div class="gate-bar">/);
+  assert.match(raw, /gate-card gate-cost/);
+  const out = cells(raw);
   assert.match(out, /gate-title">CIRCUIT COST</);
   assert.match(out, /Heating[\s\S]*Water Heater[\s\S]*Ventilation[\s\S]*Lights/);
   assert.equal(count(out, /class="gate-table-row"/g), 4);
@@ -289,7 +296,7 @@ test("circuit_cost: sorted rows, three periods and totals", () => {
   assert.match(out, /180\.0 kWh · \$18\.00/);
   assert.match(out, /width:100%/);
   assert.match(out, /gate-table-total[\s\S]*9\.5 kWh · \$0\.95[\s\S]*64\.0 kWh · \$6\.40[\s\S]*282\.0 kWh · \$28\.20/);
-  const partial = renderCard("circuit_cost.js", [...circuits.slice(1), { ...circuits[0], twin_energy_kwh: "" }]);
+  const partial = cells(renderCard("circuit_cost.js", [...circuits.slice(1), { ...circuits[0], twin_energy_kwh: "" }]));
   assert.match(partial, /gate-table-total[\s\S]*64\.0 kWh · \$6\.40[\s\S]*— · \$28\.20/);
 });
 
@@ -319,7 +326,7 @@ test("today at midnight: stale today values listed as unknown render —", () =>
   assert.match(phases, /Yesterday's peak<\/div><div class="gate-stat-value">2900 W/);
   const flow = renderCard("power_flow.js", [monitorCircuits, midnight], flowCtx);
   assert.doesNotMatch(flow, /12\.4 kWh/);
-  const cost = renderCard("circuit_cost.js", midnightCircuits);
+  const cost = cells(renderCard("circuit_cost.js", midnightCircuits));
   assert.match(cost, /Heating[\s\S]*?<div class="gate-table-cell">— · —<\/div><div class="gate-table-cell">40\.0 kWh · \$4\.00/);
   const budget = renderCard("budget.js", [midnight]);
   assert.match(budget, /Today's cost<\/span><span class="gate-value">—/);
@@ -380,4 +387,39 @@ test("data age: a muted updated line, stale past twice the cadence", () => {
   assert.match(renderCard("weather.js", cards["weather.js"], { now: NOW }), /gate-muted">updated 12:05</);
   assert.match(renderCard("budget.js", cards["budget.js"], { now: NOW }), /gate-muted">updated 22:00</);
   assert.match(renderCard("daily_bars.js", [{ ...building, analytics_daily: "[]" }], { now: NOW }), /No data yet[\s\S]*updated 22:00/);
+});
+
+test("power_flow: links carry the moving dash only while power flows; loads show their share", () => {
+  const out = renderCard("power_flow.js", cards["power_flow.js"], flowCtx);
+  assert.match(out, /^<div class="gate-card gate-energy">/);
+  // grid -> building, the trunk, and one branch per load: all live with 2.5 kW flowing.
+  assert.equal(count(out, /gate-flow-live/g), 7);
+  assert.match(out, /<div class="gate-flow-link gate-flow-trunk gate-flow-live"><\/div>/);
+  assert.match(out, /Heating<\/div><div class="gate-flow-value">1\.20 kW<\/div><div class="gate-flow-share"><span style="width:48%">/);
+  assert.match(out, /Building<\/div><div class="gate-flow-value">2\.50 kW<\/div><div class="gate-flow-sub">5 circuits</);
+  const idle = renderCard("power_flow.js", [{ ...monitorCircuits, main_total_active_power: "0", Heating: "0", Lights: "0",
+    "Water Heater": "0", Ventilation: "0", Refrigerator: "0" }], flowCtx);
+  assert.doesNotMatch(idle, /gate-flow-live/);
+  const none = renderCard("power_flow.js", [{ ...monitorCircuits, main_total_active_power: "" }], flowCtx);
+  assert.match(none, /class="gate-flow-link gate-flow-trunk"/);
+  assert.match(none, /width:0%/);
+});
+
+test("weather: the next six forecast hours from the current one", () => {
+  const hours = Array.from({ length: 9 }, (_, i) => ({ ts: NOW + (i - 2) * 3600000, temp: i - 2, code: 3 }));
+  const out = renderCard("weather.js", [{ ...weather, forecast: JSON.stringify({ ...forecast, hours }) }], { now: NOW });
+  assert.match(out, /Next hours/);
+  assert.equal(count(out, /class="gate-hour"/g), 6);
+  // NOW is 13:00 in Toronto; 12:00 is more than an hour ago and stays out.
+  assert.match(out, /^(?![\s\S]*12:00)[\s\S]*gate-hour-time">13:00<\/div><div class="gate-hour-temp">0°[\s\S]*18:00<\/div><div class="gate-hour-temp">5°/);
+  assert.match(out, /^<div class="gate-card gate-weather">/);
+  assert.doesNotMatch(renderCard("weather.js", [{ ...weather, forecast: "" }], { now: NOW }), /Next hours/);
+});
+
+test("cards carry the accent of their data family", () => {
+  const family = { "today_energy.js": "energy", "daily_bars.js": "energy", "live_telemetry.js": "energy",
+    "grid_phases.js": "energy", "budget.js": "cost", "circuit_cost.js": "cost", "weather.js": "weather" };
+  for (const [file, fam] of Object.entries(family)) {
+    assert.match(renderCard(file, cards[file], { now: NOW }), new RegExp(`^<div class="gate-card gate-${fam}">`), file);
+  }
 });

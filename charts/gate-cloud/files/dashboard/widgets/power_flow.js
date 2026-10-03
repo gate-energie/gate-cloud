@@ -1,6 +1,7 @@
 // POWER FLOW. Classes: gate-flow, gate-flow-source, gate-flow-node, gate-flow-grid,
 // gate-flow-building, gate-flow-load, gate-flow-name, gate-flow-value, gate-flow-sub,
-// gate-flow-link (CSS-border connector), gate-flow-bus, gate-flow-loads, gate-flow-branch.
+// gate-flow-link (connector; gate-flow-live while power flows), gate-flow-trunk, gate-flow-loads, gate-flow-branch,
+// gate-flow-share (the load's share of the total). Wide cards draw the tree left to right, phones top-down.
 // Circuit labels come from the "gate:circuits" datasource keys in ctx.datasources;
 // the monitor row (first with main_total_active_power) holds their live W by label.
 // Without ctx.datasources, every numeric data key of the monitor row is a circuit
@@ -32,16 +33,20 @@ var other = total === null || !shownKnown ? null
   : Math.max(0, total - loads.reduce(function (s, l) { return s + l.w; }, 0));
 loads.push({ name: "Other loads", w: other });
 var energy = gate.fmt(gate.known(building, "today_energy_kwh", "today_unknown"), 1, "kWh");
-var node = function (cls, name, value, sub) {
+// A link carries the moving dash only while power flows through it.
+var link = function (cls, w) { return '<div class="gate-flow-link' + cls + (w !== null && w > 0 ? " gate-flow-live" : "") + '"></div>'; };
+var node = function (cls, name, value, sub, share) {
   return '<div class="gate-flow-node ' + cls + '"><div class="gate-flow-name">' + gate.esc(name) +
     '</div><div class="gate-flow-value">' + value + "</div>" +
-    (sub === undefined ? "" : '<div class="gate-flow-sub">' + sub + "</div>") + "</div>";
+    (sub === undefined ? "" : '<div class="gate-flow-sub">' + sub + "</div>") +
+    (share === undefined ? "" : '<div class="gate-flow-share"><span style="width:' + share + '%"></span></div>') + "</div>";
 };
+var share = function (w) { return w === null || !total ? 0 : Math.round(Math.min(1, Math.max(0, w / total)) * 100); };
 var html = '<div class="gate-flow"><div class="gate-flow-source">' +
-  node("gate-flow-grid", "Grid", kw(total), energy) + '<div class="gate-flow-link"></div>' +
-  node("gate-flow-building", "Building", kw(total), energy) +
-  '</div><div class="gate-flow-bus"></div><div class="gate-flow-loads">' +
+  node("gate-flow-grid", "Grid", kw(total), energy === "—" ? "—" : energy + " today") + link("", total) +
+  node("gate-flow-building", "Building", kw(total), labels.length + (labels.length === 1 ? " circuit" : " circuits")) +
+  "</div>" + link(" gate-flow-trunk", total) + '<div class="gate-flow-loads">' +
   loads.map(function (l) {
-    return '<div class="gate-flow-branch"><div class="gate-flow-link"></div>' + node("gate-flow-load", l.name, kw(l.w)) + "</div>";
+    return '<div class="gate-flow-branch">' + link("", l.w) + node("gate-flow-load", l.name, kw(l.w), undefined, share(l.w)) + "</div>";
   }).join("") + "</div></div>";
-return gate.card("POWER FLOW", html);
+return gate.card("POWER FLOW", html, "energy");
