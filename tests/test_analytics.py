@@ -319,6 +319,8 @@ def test_today_snapshot_writes_today_and_yesterday_on_the_building(tmp_path):
     assert b["yesterday_cost_cad"] == day_cost(48.0, RateD())
     assert b["yesterday_peak_w"] == 2000.0
     assert b["yesterday_same_time_kwh"] == 24.0  # no counter near yesterday noon: 2 kW x 12 h integrated
+    # Priced like today so far (one day's bill), so the two costs compare like with like.
+    assert b["yesterday_same_time_cost_cad"] == day_cost(24.0, RateD())
     assert b["today_updated_at"] == NOON_MS
     assert b["today_unknown"] == ""
     heating = SHARED.attrs["asset-heating"]
@@ -413,7 +415,7 @@ def test_today_snapshot_at_midnight_keeps_yesterday(tmp_path):
     b = SHARED.attrs["asset-B"]
     assert None not in b.values()
     assert {"today_energy_kwh", "today_cost_cad", "today_peak_w", "today_peak_at",
-            "yesterday_same_time_kwh"} <= set(b["today_unknown"].split(","))
+            "yesterday_same_time_kwh", "yesterday_same_time_cost_cad"} <= set(b["today_unknown"].split(","))
     assert b["yesterday_energy_kwh"] == 48.0 and b["yesterday_peak_w"] == 2000.0
     assert "today_cost_cad" in SHARED.attrs["asset-heating"]["today_unknown"].split(",")
     assert windows and all(start < end for start, end in windows)  # no zero-length reads

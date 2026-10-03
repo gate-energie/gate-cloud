@@ -513,6 +513,8 @@ def today_snapshot(
             "yesterday_cost_cad": day_cost(yesterday_energy, rate),
             "yesterday_peak_w": usable_peak(before, read_peak(session, monitor, key, yesterday))[0],
             "yesterday_same_time_kwh": same_time,
+            # Priced like today_cost_cad (one day's bill), so the dashboard compares like with like.
+            "yesterday_same_time_cost_cad": day_cost(same_time, rate),
             "today_updated_at": int(now.timestamp() * 1000),
         }
         session.save_attributes(entity_ref("ASSET", building.id.id), "SERVER_SCOPE", _known(attrs, "today_unknown"))
