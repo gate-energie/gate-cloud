@@ -1,0 +1,36 @@
+// POWER FLOW. Classes: gate-flow, gate-flow-source, gate-flow-node, gate-flow-grid,
+// gate-flow-building, gate-flow-load, gate-flow-name, gate-flow-value, gate-flow-sub,
+// gate-flow-link (CSS-border connector), gate-flow-bus, gate-flow-loads, gate-flow-branch.
+// Monitor row: main_total_active_power plus one property per circuit (its label);
+// building row: today_energy_kwh.
+var monitor = gate.firstWithKey(data, "main_total_active_power") || {};
+var building = gate.firstWithKey(data, "today_energy_kwh") || {};
+var skip = /^(entity[A-Z][A-Za-z]*|deviceName|aliasName|dsIndex|dsName)$/;
+var total = gate.num(monitor.main_total_active_power);
+var kw = function (w) { return w === null ? "—" : gate.fmt(w / 1000, 2, "kW"); };
+var loads = Object.keys(monitor)
+  .filter(function (k) { return k !== "main_total_active_power" && !skip.test(k); })
+  .map(function (k) { return { name: k, w: gate.num(monitor[k]) }; })
+  .sort(function (a, b) {
+    if (a.w === null || b.w === null) return a.w === null ? (b.w === null ? 0 : 1) : -1;
+    return b.w - a.w;
+  })
+  .slice(0, 4);
+var shownKnown = loads.every(function (l) { return l.w !== null; });
+var other = total === null || !shownKnown ? null
+  : Math.max(0, total - loads.reduce(function (s, l) { return s + l.w; }, 0));
+loads.push({ name: "Other loads", w: other });
+var energy = gate.fmt(building.today_energy_kwh, 1, "kWh");
+var node = function (cls, name, value, sub) {
+  return '<div class="gate-flow-node ' + cls + '"><div class="gate-flow-name">' + gate.esc(name) +
+    '</div><div class="gate-flow-value">' + value + "</div>" +
+    (sub === undefined ? "" : '<div class="gate-flow-sub">' + sub + "</div>") + "</div>";
+};
+var html = '<div class="gate-flow"><div class="gate-flow-source">' +
+  node("gate-flow-grid", "Grid", kw(total), energy) + '<div class="gate-flow-link"></div>' +
+  node("gate-flow-building", "Building", kw(total), energy) +
+  '</div><div class="gate-flow-bus"></div><div class="gate-flow-loads">' +
+  loads.map(function (l) {
+    return '<div class="gate-flow-branch"><div class="gate-flow-link"></div>' + node("gate-flow-load", l.name, kw(l.w)) + "</div>";
+  }).join("") + "</div></div>";
+return gate.card("POWER FLOW", html);

@@ -17,12 +17,28 @@ gate.fmt = function (value, decimals, unit) {
   return n.toFixed(decimals || 0) + (unit ? " " + unit : "");
 };
 gate.rows = function (data, key) {
-  return (data || []).filter(function (r) {
+  if (!Array.isArray(data)) return [];
+  return data.filter(function (r) {
     return r && r[key] !== undefined && r[key] !== null && r[key] !== "";
   });
 };
 gate.row = function (data, key) {
   return gate.rows(data, key)[0] || null;
+};
+gate.withKey = function (data, key) {
+  if (!Array.isArray(data)) return [];
+  return data.filter(function (r) {
+    return r !== null && typeof r === "object" && Object.prototype.hasOwnProperty.call(r, key);
+  });
+};
+gate.firstWithKey = function (data, key) {
+  return gate.withKey(data, key)[0] || null;
+};
+gate.money = function (value, decimals) {
+  var n = gate.num(value);
+  if (n === null) return "—";
+  var d = decimals === undefined ? 2 : decimals;
+  return (n < 0 ? "-$" : "$") + Math.abs(n).toFixed(d);
 };
 gate.esc = function (text) {
   return String(text === null || text === undefined ? "" : text)

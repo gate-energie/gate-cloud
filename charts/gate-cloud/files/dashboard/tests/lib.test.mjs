@@ -11,6 +11,11 @@ test("json parses strings and passes objects through", () => {
   for (const bad of ["", null, undefined, "{nope", "  "]) assert.equal(gate.json(bad), null);
 });
 
+test("json accepts arrays as strings and as values", () => {
+  assert.deepEqual(gate.json("[1,2]"), [1, 2]);
+  assert.deepEqual(gate.json([1]), [1]);
+});
+
 test("num returns finite numbers or null", () => {
   assert.equal(gate.num("12.5"), 12.5);
   assert.equal(gate.num(3), 3);
@@ -37,6 +42,13 @@ test("row and rows pick rows with a non-empty value", () => {
   assert.deepEqual(gate.rows(undefined, "a"), []);
 });
 
+test("row and rows tolerate data that is not an array", () => {
+  for (const bad of [{}, { a: 1 }, "abc", 5]) {
+    assert.deepEqual(gate.rows(bad, "a"), []);
+    assert.equal(gate.row(bad, "a"), null);
+  }
+});
+
 test("esc escapes html", () => {
   assert.equal(gate.esc(`<a href="x">&'</a>`), "&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;");
   assert.equal(gate.esc(null), "");
@@ -59,4 +71,23 @@ test("bar clamps the fraction", () => {
 test("including the library twice is harmless", () => {
   const twice = new Function(loadLib() + "\n" + loadLib() + "\nreturn gate;")();
   assert.equal(twice.fmt(1, 0), "1");
+});
+
+test("withKey and firstWithKey keep rows that carry the key, even blank", () => {
+  const data = [{ a: "" }, { b: "1" }, { a: "2" }];
+  assert.deepEqual(gate.withKey(data, "a"), [data[0], data[2]]);
+  assert.equal(gate.firstWithKey(data, "a"), data[0]);
+  assert.equal(gate.firstWithKey(data, "z"), null);
+  for (const bad of [null, undefined, {}, "x"]) {
+    assert.deepEqual(gate.withKey(bad, "a"), []);
+    assert.equal(gate.firstWithKey(bad, "a"), null);
+  }
+});
+
+test("money formats dollars with a sign before the symbol", () => {
+  assert.equal(gate.money("1.5"), "$1.50");
+  assert.equal(gate.money(0), "$0.00");
+  assert.equal(gate.money(-2), "-$2.00");
+  assert.equal(gate.money(12.345, 0), "$12");
+  assert.equal(gate.money(""), "—");
 });
