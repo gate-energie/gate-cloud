@@ -334,3 +334,26 @@ test("month on the 1st: stale month values listed as unknown render —", () => 
   assert.match(out, /Budget<\/span><span class="gate-value">\$150\.00/);
   assert.match(out, /Days left<\/span><span class="gate-value">30 days/);
 });
+
+test("power_flow: datasources named after their entity fall back to the monitor row's numeric keys", () => {
+  // ThingsBoard names a resolved datasource after its entity, so "gate:circuits" is not found.
+  const names = ["main_total_active_power", "Heating", "Lights", "Water Heater", "Ventilation", "Refrigerator"];
+  const row = real("GATE Monitor", {
+    entityName: "GATE Monitor", entityType: "DEVICE",
+    main_total_active_power: "2500",
+    Heating: "1200", Lights: "80", "Water Heater": "600", Ventilation: "300", Refrigerator: "150",
+  });
+  const home = real("GATE", { entityName: "GATE", entityType: "ASSET", today_energy_kwh: "12.4", today_unknown: "" });
+  const ctx = { datasources: [
+    { name: "GATE Monitor", dataKeys: names.map((label) => ({ name: label.toLowerCase().replace(/ /g, "_") + "_active_power", label })) },
+    { name: "GATE", dataKeys: [{ name: "today_energy_kwh", label: "today_energy_kwh" }, { name: "today_unknown", label: "today_unknown" }] },
+  ] };
+  const out = renderCard("power_flow.js", [row, home], ctx);
+  assert.equal(count(out, /gate-flow-load"/g), 5);
+  for (const [name, kw] of [["Heating", "1.20"], ["Water Heater", "0.60"], ["Ventilation", "0.30"], ["Refrigerator", "0.15"]]) {
+    assert.match(out, new RegExp(`${name}</div><div class="gate-flow-value">${kw} kW`));
+  }
+  assert.match(out, /Other loads<\/div><div class="gate-flow-value">0\.25 kW/);
+  assert.match(out, /12\.4 kWh/);
+  assert.doesNotMatch(out, /GATE Monitor|DEVICE|dsIndex|\|ts|1759500000|id-GATE/);
+});
